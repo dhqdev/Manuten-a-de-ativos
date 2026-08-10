@@ -100,6 +100,37 @@ prática: mesmo que um texto malicioso chegue ao HTML, ele não executa.
 
 Verificado em produção: **10 de 10 scripts com nonce, zero violações no console.**
 
+### ⚠️ Armadilha: página estática quebra com esta CSP
+
+O nonce vem do cabeçalho da requisição, então **só existe em renderização
+dinâmica**. Uma página pré-gerada no build sai com os scripts sem nonce e, como
+`'strict-dynamic'` faz o navegador ignorar o `'self'`, **todo o JavaScript dela
+é bloqueado** — a página aparece, mas nada funciona.
+
+Isso aconteceu de verdade aqui: `/cadastro` e `/recuperar-senha` ficaram com os
+10 scripts bloqueados e os formulários não enviavam. Corrigido com
+`export const dynamic = "force-dynamic"` em todas as páginas fora do grupo
+autenticado (que já é dinâmico por usar cookies).
+
+**Ao criar uma página nova fora de `app/(app)/`, adicione essa linha.** Para
+conferir:
+
+```bash
+curl -s https://sua-url.vercel.app/pagina-nova \
+  | grep -c '<script'            # total
+curl -s https://sua-url.vercel.app/pagina-nova \
+  | grep -c '<script[^>]*nonce="'  # precisa dar o mesmo número
+```
+
+Verificação atual:
+
+```
+/login            scripts=10  sem nonce=0     violações no navegador: 0
+/cadastro         scripts=10  sem nonce=0     violações no navegador: 0
+/recuperar-senha  scripts=10  sem nonce=0
+/offline          scripts=11  sem nonce=0     violações no navegador: 0
+```
+
 Duas escolhas conscientes:
 
 - `style-src` usa `'unsafe-inline'`. Atributos `style` inline (as cores das

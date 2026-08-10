@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { RegistrarServiceWorker } from "@/components/registrar-sw";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,18 +17,34 @@ export const metadata: Metadata = {
   description:
     "Controle completo de ativos, manutenções, custos, históricos e manutenções preventivas.",
   applicationName: "Manutenção",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Manutenção",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f172a",
+  maximumScale: 5,
+  // Ocupa a tela inteira no app instalado; o padding de safe-area cuida do resto.
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={inter.variable}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <RegistrarServiceWorker />
+      </body>
     </html>
   );
 }

@@ -79,6 +79,29 @@ Para publicar na Vercel, veja [DEPLOY.md](DEPLOY.md).
 | **Relatórios** | Filtra por período, categoria, ativo e tipo. Gera PDF e compartilha no WhatsApp |
 | **Configurações** | Dados da empresa, perfil, senha, **WhatsApp**, equipe e empresa ativa |
 
+### Aplicativo no celular (PWA)
+
+Dá para instalar na tela inicial e usar como app.
+
+- **Android/Chrome**: abrir o site → menu ⋮ → *Instalar aplicativo*
+- **iPhone/Safari**: abrir o site → Compartilhar → *Adicionar à Tela de Início*
+
+No celular a interface muda:
+
+- **barra inferior fixa** com Dashboard, Ativos, Manutenções e Calendário;
+- botão **Mais** abre um menu suspenso com quadrados (Relatórios, Configurações,
+  atalhos e Sair);
+- os **modais sobem da borda inferior**, com alça de arrasto, em vez de aparecer
+  no meio da tela;
+- respeita as áreas seguras (notch e barra de gestos).
+
+Sem internet, aparece uma tela avisando — nunca dados de manutenção
+desatualizados, que seria pior do que não mostrar nada.
+
+> Só funciona instalado em **HTTPS** (a Vercel já entrega assim). Em
+> `localhost` o service worker fica desligado propositalmente, para não servir
+> arquivo velho durante o desenvolvimento.
+
 ### Notificações no WhatsApp
 
 O usuário lê um QR code dentro do sistema e passa a receber toda manhã, no

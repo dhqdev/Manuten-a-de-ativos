@@ -114,6 +114,69 @@ h3 {
   color: var(--color-slate-700);
 }
 
+/* ---------------------------------------------------------------------------
+   Movimento
+   No celular as folhas sobem a partir da borda inferior; no desktop o diálogo
+   só aparece com um leve avanço. Quem pediu menos animação recebe menos.
+--------------------------------------------------------------------------- */
+@keyframes surgir {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes subir-folha {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes aproximar {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility veu {
+  animation: surgir 0.2s ease-out;
+}
+
+@utility folha {
+  animation: subir-folha 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@utility dialogo {
+  animation: aproximar 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veu,
+  .folha,
+  .dialogo {
+    animation: none !important;
+  }
+}
+
+/* Respiro para as barras do sistema no app instalado */
+@utility area-segura-inferior {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility area-segura-superior {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 @media print {
   .no-print {
     display: none !important;

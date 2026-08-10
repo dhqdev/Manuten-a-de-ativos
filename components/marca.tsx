@@ -8,10 +8,10 @@ export function Simbolo({ className }: { className?: string }) {
       <path
         d="M12 2.6 20.1 7.3v9.4L12 21.4 3.9 16.7V7.3z"
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <circle cx="12" cy="12" r="3.4" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }

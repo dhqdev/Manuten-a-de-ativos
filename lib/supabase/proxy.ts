@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { chaveSupabase, urlSupabase } from "./config";
 
 /** Telas acessíveis sem sessão. */
-const ROTAS_PUBLICAS = ["/login", "/cadastro", "/recuperar-senha", "/auth"];
+const ROTAS_PUBLICAS = ["/login", "/cadastro", "/recuperar-senha", "/auth", "/offline"];
 
 /**
  * Rotas de API cuidam da própria autenticação (a rotina diária usa CRON_SECRET).
