@@ -5,13 +5,18 @@ export function cn(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
+/**
+ * Grafite é a ação; azul é navegação e estado. Manter essa separação é o que
+ * segura a interface sozinha, sem precisar de mais cor.
+ */
 const VARIANTES = {
-  primario: "bg-marca-600 text-white hover:bg-marca-700 focus-visible:outline-marca-600",
+  primario:
+    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus-visible:outline-slate-900 shadow-[0_1px_2px_0_rgb(15_23_42/0.12)]",
   secundario:
-    "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400",
+    "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus-visible:outline-slate-900",
   perigo: "bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600",
-  sutil: "bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-slate-400",
-  fantasma: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-400",
+  sutil: "bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-slate-900",
+  fantasma: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-900",
 };
 
 const TAMANHOS = {
@@ -76,12 +81,12 @@ export function Cabecalho({
   acoes?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-6 flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h1 className="truncate text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        <h1 className="truncate text-[22px] font-semibold leading-tight text-slate-900 sm:text-2xl">
           {titulo}
         </h1>
-        {descricao && <p className="mt-1 text-sm text-slate-500">{descricao}</p>}
+        {descricao && <p className="mt-1.5 text-sm text-slate-500">{descricao}</p>}
       </div>
       {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
     </div>

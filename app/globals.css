@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
+  --font-sans: var(--fonte-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 
+  /* Azul de navegação e estado. A ação principal usa grafite (slate-900). */
   --color-marca-50: #eff6ff;
   --color-marca-100: #dbeafe;
   --color-marca-200: #bfdbfe;
@@ -15,6 +16,10 @@
   --color-marca-800: #1e40af;
   --color-marca-900: #1e3a8a;
   --color-marca-950: #172554;
+
+  /* Sombras discretas — profundidade sem "caixa flutuante" */
+  --shadow-suave: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.03);
+  --shadow-elevada: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 6px -2px rgb(15 23 42 / 0.04);
 }
 
 html,
@@ -23,18 +28,36 @@ body {
 }
 
 body {
-  background-color: var(--color-slate-100);
+  background-color: var(--color-slate-50);
   color: var(--color-slate-900);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Barras de rolagem discretas */
+/* Números alinham em colunas — importante em tabelas de custo */
+.tabular-nums,
+table,
+.card p {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+::selection {
+  background-color: var(--color-marca-100);
+  color: var(--color-marca-900);
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--color-slate-400) 60%, transparent);
+  background: color-mix(in oklab, var(--color-slate-400) 55%, transparent);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
@@ -47,29 +70,35 @@ body {
 
 @utility card {
   background-color: white;
-  border-radius: var(--radius-xl);
+  border-radius: 0.75rem;
   border: 1px solid var(--color-slate-200);
-  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  box-shadow: var(--shadow-suave);
 }
 
 @utility campo {
   width: 100%;
-  border-radius: var(--radius-lg);
+  border-radius: 0.5rem;
   border: 1px solid var(--color-slate-300);
   background-color: white;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
+  line-height: 1.35rem;
   color: var(--color-slate-900);
   outline: none;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 @utility campo {
   &::placeholder {
     color: var(--color-slate-400);
   }
+  &:hover:not(:disabled):not(:focus) {
+    border-color: var(--color-slate-400);
+  }
   &:focus {
-    border-color: var(--color-marca-500);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-marca-500) 18%, transparent);
+    border-color: var(--color-slate-900);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-slate-900) 10%, transparent);
   }
   &:disabled {
     background-color: var(--color-slate-50);
@@ -85,7 +114,6 @@ body {
   color: var(--color-slate-700);
 }
 
-/* Impressão: só o conteúdo */
 @media print {
   .no-print {
     display: none !important;

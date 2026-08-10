@@ -1,5 +1,5 @@
-import { Wrench } from "lucide-react";
 import type { ReactNode } from "react";
+import { Assinatura, Logo, Simbolo } from "@/components/marca";
 
 export function MolduraAuth({
   titulo,
@@ -13,43 +13,50 @@ export function MolduraAuth({
   rodape?: ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Painel de marca — só no desktop */}
-      <aside className="relative hidden flex-col justify-between bg-slate-900 p-12 text-white lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-slate-950 p-12 text-white lg:flex">
+        {/* Malha sutil de porcas, bem apagada: textura sem ruído visual */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-70"
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          aria-hidden
           style={{
-            background:
-              "radial-gradient(60rem 40rem at 15% 0%, rgba(37,99,235,.35), transparent 60%), radial-gradient(50rem 30rem at 90% 100%, rgba(14,116,144,.30), transparent 60%)",
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "28px 28px",
           }}
         />
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full opacity-20 blur-3xl"
+          aria-hidden
+          style={{ background: "radial-gradient(circle, #2563eb, transparent 70%)" }}
+        />
+
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-marca-600">
-            <Wrench className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight">Gestão de Manutenção</span>
+          <Logo tom="claro" />
+          <Assinatura tom="claro" />
         </div>
 
         <div className="relative max-w-md">
-          <h2 className="text-3xl font-semibold leading-tight tracking-tight">
+          <h2 className="text-[2rem] font-semibold leading-[1.15] tracking-tight">
             Toda a manutenção da sua operação em um só lugar.
           </h2>
-          <ul className="mt-8 space-y-3 text-sm text-slate-300">
+          <ul className="mt-9 space-y-3.5 text-sm text-slate-400">
             {[
               "Ativos organizados por categoria, como pastas",
               "Histórico completo com custos, peças e anexos",
-              "Alertas automáticos de manutenção preventiva",
-              "Relatórios em PDF prontos para o WhatsApp",
+              "Alertas de preventiva no seu WhatsApp",
+              "Relatórios em PDF prontos para compartilhar",
             ].map((t) => (
-              <li key={t} className="flex items-start gap-2.5">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-marca-400" />
+              <li key={t} className="flex items-start gap-3">
+                <Simbolo className="mt-0.5 h-4 w-4 shrink-0 text-marca-400" />
                 {t}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="relative text-xs text-slate-400">
+        <p className="relative text-xs text-slate-600">
           © {new Date().getFullYear()} Gestão de Manutenção de Ativos
         </p>
       </aside>
@@ -57,17 +64,13 @@ export function MolduraAuth({
       {/* Formulário */}
       <section className="flex items-center justify-center bg-white px-6 py-12">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-marca-600 text-white">
-              <Wrench className="h-5 w-5" />
-            </div>
-            <span className="text-base font-semibold tracking-tight text-slate-900">
-              Gestão de Manutenção
-            </span>
+          <div className="mb-9 flex items-center gap-3 lg:hidden">
+            <Logo />
+            <Assinatura />
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{titulo}</h1>
-          {subtitulo && <p className="mt-1.5 text-sm text-slate-500">{subtitulo}</p>}
+          {subtitulo && <p className="mt-2 text-sm text-slate-500">{subtitulo}</p>}
 
           <div className="mt-8">{children}</div>
 

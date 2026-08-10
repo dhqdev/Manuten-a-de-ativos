@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, FolderOpen, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { BotaoExcluir } from "@/components/confirmar";
 import { FormularioSalvar } from "@/components/configuracoes/formulario-salvar";
+import { PainelWhatsapp, type ConexaoAtual } from "@/components/configuracoes/whatsapp";
 import { Badge, Cabecalho, Campo, Secao } from "@/components/ui";
 import { alterarSenha, salvarEmpresa, salvarPerfil, trocarEmpresa } from "@/lib/actions/configuracoes";
 import { adicionarMembro, removerMembro } from "@/lib/actions/equipe";
@@ -39,17 +40,27 @@ export default async function ConfiguracoesPage() {
   const { orgId, userId, email, profile, organizacao, papel, empresas } = await getContexto();
   const supabase = await createClient();
 
-  const [{ data: membros }, { data: categorias }, { count: totalAtivos }, { count: totalManutencoes }] =
-    await Promise.all([
-      supabase
-        .from("org_membros")
-        .select("user_id, papel, created_at, profiles(nome, email, cargo)")
-        .eq("org_id", orgId)
-        .order("created_at"),
-      supabase.from("categorias").select("id, nome, cor").eq("org_id", orgId).order("ordem").order("nome"),
-      supabase.from("ativos").select("id", { count: "exact", head: true }).eq("org_id", orgId),
-      supabase.from("manutencoes").select("id", { count: "exact", head: true }).eq("org_id", orgId),
-    ]);
+  const [
+    { data: membros },
+    { data: categorias },
+    { count: totalAtivos },
+    { count: totalManutencoes },
+    { data: conexaoWhatsapp },
+  ] = await Promise.all([
+    supabase
+      .from("org_membros")
+      .select("user_id, papel, created_at, profiles(nome, email, cargo)")
+      .eq("org_id", orgId)
+      .order("created_at"),
+    supabase.from("categorias").select("id, nome, cor").eq("org_id", orgId).order("ordem").order("nome"),
+    supabase.from("ativos").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+    supabase.from("manutencoes").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+    supabase
+      .from("whatsapp_conexoes")
+      .select("status, numero, nome_perfil, notificar, incluir_atrasadas, dias_antecedencia, ultimo_envio")
+      .eq("org_id", orgId)
+      .maybeSingle(),
+  ]);
 
   const podeGerenciar = papel === "proprietario" || papel === "gestor";
 
@@ -187,6 +198,11 @@ export default async function ConfiguracoesPage() {
             </div>
           </div>
         </Secao>
+      </div>
+
+      {/* WhatsApp */}
+      <div className="mt-4">
+        <PainelWhatsapp conexao={(conexaoWhatsapp as ConexaoAtual) ?? null} />
       </div>
 
       {/* Equipe */}

@@ -40,7 +40,14 @@ Cadastre estas três, marcando **Production, Preview e Development**:
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xojpygcmdvuzklllobbb.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_sAGTpwLUXVSzmPIsnOfsCw_XZMz8yP8` |
-| `NEXT_PUBLIC_SITE_URL` | a URL da Vercel, ex.: `https://manutencao-de-ativos.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | a URL da Vercel, ex.: `https://manutencaoativos.vercel.app` |
+| `EVOLUTION_API_URL` | `https://zap.tekvosoft.com` |
+| `EVOLUTION_API_KEY` | a chave da sua Evolution |
+| `SUPABASE_SECRET_KEY` | `sb_secret_...` — **só** para a rotina de WhatsApp (veja abaixo) |
+| `CRON_SECRET` | uma senha aleatória qualquer, ex.: a que está no seu `.env.local` |
+
+As quatro últimas **não** têm `NEXT_PUBLIC_`, então nunca chegam ao navegador —
+ficam só no servidor.
 
 A `NEXT_PUBLIC_SITE_URL` é o endereço que aparece nos links de **redefinição de
 senha** e **confirmação de e-mail**. Como você só descobre a URL depois do
@@ -51,8 +58,12 @@ primeiro deploy, faça assim:
 3. Volte em *Settings → Environment Variables*, adicione a variável.
 4. *Deployments → ⋯ → Redeploy*.
 
-> **Não** cadastre a `SUPABASE_SECRET_KEY` na Vercel. O aplicativo não usa essa
-> chave em nenhum lugar — ela ignora todas as regras de segurança do banco.
+> **Correção em relação à versão anterior deste guia:** antes eu disse para não
+> cadastrar a `SUPABASE_SECRET_KEY`. Com as notificações de WhatsApp ela passou a
+> ser necessária: a rotina diária precisa varrer *todas* as empresas, e nenhuma
+> sessão de usuário consegue fazer isso. Cadastre-a **sem** o prefixo
+> `NEXT_PUBLIC_` — assim ela fica restrita ao servidor. Ela é usada em um único
+> arquivo (`lib/supabase/admin.ts`), consumido só pela rotina.
 
 ### Atenção: variável nova exige Redeploy
 

@@ -53,7 +53,10 @@ As variáveis já estão em `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 NEXT_PUBLIC_SITE_URL=http://localhost:3001   # base dos links enviados por e-mail
-SUPABASE_SECRET_KEY=...                      # nunca use prefixo NEXT_PUBLIC_ aqui
+SUPABASE_SECRET_KEY=...                      # rotina de WhatsApp; sem NEXT_PUBLIC_
+EVOLUTION_API_URL=...                        # servidor da Evolution
+EVOLUTION_API_KEY=...                        # chave da Evolution; sem NEXT_PUBLIC_
+CRON_SECRET=...                              # protege a rotina diária
 ```
 
 Para publicar na Vercel, veja [DEPLOY.md](DEPLOY.md).
@@ -74,7 +77,13 @@ Para publicar na Vercel, veja [DEPLOY.md](DEPLOY.md).
 | **Manutenções** | Todas as preventivas com alertas de atraso/vencimento + histórico geral |
 | **Calendário** | Mês a mês, com realizadas (verde), programadas (azul) e atrasadas (vermelho). Filtra por categoria e por situação |
 | **Relatórios** | Filtra por período, categoria, ativo e tipo. Gera PDF e compartilha no WhatsApp |
-| **Configurações** | Dados da empresa, perfil, troca de senha, equipe e empresa ativa |
+| **Configurações** | Dados da empresa, perfil, senha, **WhatsApp**, equipe e empresa ativa |
+
+### Notificações no WhatsApp
+
+O usuário lê um QR code dentro do sistema e passa a receber toda manhã, no
+próprio WhatsApp, o resumo das manutenções atrasadas e a vencer.
+Detalhes em [WHATSAPP.md](WHATSAPP.md).
 
 ### Manutenções periódicas
 
