@@ -54,6 +54,18 @@ primeiro deploy, faça assim:
 > **Não** cadastre a `SUPABASE_SECRET_KEY` na Vercel. O aplicativo não usa essa
 > chave em nenhum lugar — ela ignora todas as regras de segurança do banco.
 
+### Atenção: variável nova exige Redeploy
+
+Variáveis que começam com `NEXT_PUBLIC_` são **gravadas dentro do código durante
+o build**, não lidas quando o app roda. Consequências práticas:
+
+- Salvar a variável na Vercel **não** basta — só vale no próximo build.
+- Sempre que criar ou alterar uma delas: *Deployments → ⋯ → Redeploy*.
+
+Se esquecer de cadastrá-las, **o build passa mesmo assim** (fica verde na
+Vercel) e o app responde **500** ao ser aberto. Nesse caso o log em
+*Deployments → Runtime Logs* mostra exatamente qual variável falta.
+
 ---
 
 ## Passo 4 — Liberar a URL no Supabase
@@ -87,6 +99,20 @@ desmarcar **Confirm email** → **Save**.
 
 Quando o sistema entrar em uso de verdade, ligue de novo — aí o Passo 4 passa a
 ser obrigatório, porque é ele que faz o link do e-mail apontar para o lugar certo.
+
+### Se for ligar a confirmação em produção, configure um SMTP
+
+O serviço de e-mail embutido do Supabase é **só para desenvolvimento**: ele
+limita a poucos e-mails por hora e não garante entrega. Com ele ligado em
+produção, a maioria dos cadastros de funcionários simplesmente não recebe o
+e-mail — e a pessoa fica sem conseguir entrar, sem mensagem de erro clara.
+
+Supabase → **Authentication → Emails → SMTP Settings** → ative *Enable Custom
+SMTP*. Serviços com plano gratuito que servem bem: **Resend**, **Brevo** ou
+**SendGrid**.
+
+Enquanto a confirmação estiver desligada, nada disso é necessário: ninguém
+recebe e-mail no cadastro. Só a recuperação de senha depende de e-mail.
 
 ---
 
