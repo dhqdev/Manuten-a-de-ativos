@@ -86,6 +86,16 @@ export async function excluirManutencao(id: string): Promise<Resultado> {
   }
 }
 
+/** Tipos aceitos como anexo. Espelha a restrição do bucket no Supabase. */
+const MIME_PERMITIDOS = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+];
+
 export async function registrarAnexo(entrada: {
   manutencaoId: string;
   nome: string;
@@ -96,6 +106,27 @@ export async function registrarAnexo(entrada: {
   try {
     const { orgId } = await getContexto();
     const supabase = await createClient();
+
+    // A manutenção precisa ser da empresa de quem está enviando. Sem isto, dava
+    // para pendurar anexo em registro de outra empresa (o RLS barraria a
+    // leitura, mas sujaria o banco alheio).
+    const { data: alvo } = await supabase
+      .from("manutencoes")
+      .select("id")
+      .eq("id", entrada.manutencaoId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (!alvo) return { ok: false, erro: "Manutenção não encontrada nesta empresa." };
+
+    if (entrada.tipoMime && !MIME_PERMITIDOS.includes(entrada.tipoMime)) {
+      return { ok: false, erro: "Tipo de arquivo não permitido. Envie imagem ou PDF." };
+    }
+
+    // O caminho precisa começar pela pasta da própria empresa.
+    if (!entrada.path.startsWith(`${orgId}/${entrada.manutencaoId}/`)) {
+      return { ok: false, erro: "Caminho de arquivo inválido." };
+    }
 
     const { error } = await supabase.from("manutencao_anexos").insert({
       org_id: orgId,

@@ -3,6 +3,7 @@ import { Building2, FolderOpen, ShieldCheck, UserPlus, Users } from "lucide-reac
 import { BotaoExcluir } from "@/components/confirmar";
 import { FormularioSalvar } from "@/components/configuracoes/formulario-salvar";
 import { PainelWhatsapp, type ConexaoAtual } from "@/components/configuracoes/whatsapp";
+import { ZonaPerigo } from "@/components/configuracoes/zona-perigo";
 import { Badge, Cabecalho, Campo, Secao } from "@/components/ui";
 import { alterarSenha, salvarEmpresa, salvarPerfil, trocarEmpresa } from "@/lib/actions/configuracoes";
 import { adicionarMembro, removerMembro } from "@/lib/actions/equipe";
@@ -63,6 +64,25 @@ export default async function ConfiguracoesPage() {
   ]);
 
   const podeGerenciar = papel === "proprietario" || papel === "gestor";
+
+  // Para a exclusão de conta: empresas onde o usuário é a única pessoa somem
+  // por completo; nas demais ele apenas sai.
+  const { data: todosMembros } = await supabase
+    .from("org_membros")
+    .select("org_id")
+    .in("org_id", empresas.map((e) => e.id));
+
+  const pessoasPorEmpresa = new Map<string, number>();
+  for (const m of todosMembros ?? []) {
+    pessoasPorEmpresa.set(m.org_id, (pessoasPorEmpresa.get(m.org_id) ?? 0) + 1);
+  }
+
+  const empresasApagadas = empresas
+    .filter((e) => (pessoasPorEmpresa.get(e.id) ?? 1) <= 1)
+    .map((e) => e.nome);
+  const empresasMantidas = empresas
+    .filter((e) => (pessoasPorEmpresa.get(e.id) ?? 1) > 1)
+    .map((e) => e.nome);
 
   type LinhaMembro = {
     user_id: string;
@@ -291,6 +311,14 @@ export default async function ConfiguracoesPage() {
           Todos os dados são isolados por empresa no banco. Cada pessoa só enxerga os ativos e
           manutenções das empresas de que faz parte.
         </p>
+      </div>
+
+      <div className="mt-4">
+        <ZonaPerigo
+          email={email}
+          empresasQueSeraoApagadas={empresasApagadas}
+          empresasQueSeraoTransferidas={empresasMantidas}
+        />
       </div>
     </>
   );

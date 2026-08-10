@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { caminhoInterno } from "@/lib/url-segura";
 
 export type EstadoForm = { erro?: string; sucesso?: string } | null;
 
@@ -39,7 +40,8 @@ async function origem() {
 export async function entrar(_prev: EstadoForm, formData: FormData): Promise<EstadoForm> {
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
-  const destino = String(formData.get("redirect") ?? "") || "/dashboard";
+  // Saneado de novo aqui: a página também filtra, mas o FormData vem do cliente.
+  const destino = caminhoInterno(String(formData.get("redirect") ?? ""));
 
   if (!email || !senha) return { erro: "Informe e-mail e senha." };
 
@@ -48,7 +50,7 @@ export async function entrar(_prev: EstadoForm, formData: FormData): Promise<Est
   if (error) return { erro: traduzir(error.message) };
 
   revalidatePath("/", "layout");
-  redirect(destino.startsWith("/") ? destino : "/dashboard");
+  redirect(destino);
 }
 
 export async function cadastrar(_prev: EstadoForm, formData: FormData): Promise<EstadoForm> {

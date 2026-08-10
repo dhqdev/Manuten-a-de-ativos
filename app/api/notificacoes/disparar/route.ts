@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enviarTexto, estadoConexao } from "@/lib/evolution";
@@ -5,6 +6,18 @@ import { montarResumo, type Pendencia } from "@/lib/whatsapp-mensagem";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/** Comparação de tempo constante: não vaza o segredo por diferença de latência. */
+function comparacaoSegura(a: string, b: string) {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) {
+    // Ainda assim compara, para o tempo não denunciar o tamanho.
+    timingSafeEqual(bb, bb);
+    return false;
+  }
+  return timingSafeEqual(ba, bb);
+}
 
 /**
  * Rotina diária: varre as empresas com WhatsApp conectado e manda o resumo
@@ -23,10 +36,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const autorizacao = request.headers.get("authorization");
-  const viaParametro = request.nextUrl.searchParams.get("segredo");
+  // Só cabeçalho: segredo em query string vaza em log de acesso e no Referer.
+  const enviado = request.headers.get("authorization") ?? "";
 
-  if (autorizacao !== `Bearer ${segredo}` && viaParametro !== segredo) {
+  if (!comparacaoSegura(enviado, `Bearer ${segredo}`)) {
     return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
   }
 

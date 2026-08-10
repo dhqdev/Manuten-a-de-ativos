@@ -6,11 +6,13 @@ export function MolduraAuth({
   subtitulo,
   children,
   rodape,
+  aviso,
 }: {
   titulo: string;
   subtitulo?: string;
   children: ReactNode;
   rodape?: ReactNode;
+  aviso?: string;
 }) {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
@@ -69,8 +71,16 @@ export function MolduraAuth({
             <Assinatura />
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{titulo}</h1>
-          {subtitulo && <p className="mt-2 text-sm text-slate-500">{subtitulo}</p>}
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-slate-900">
+            {titulo}
+          </h1>
+          {subtitulo && <p className="mt-2 text-[15px] text-slate-500">{subtitulo}</p>}
+
+          {aviso && (
+            <p className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600">
+              {aviso}
+            </p>
+          )}
 
           <div className="mt-8">{children}</div>
 

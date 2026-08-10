@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { caminhoInterno } from "@/lib/url-segura";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 /** Recebe o link enviado por e-mail (confirmação de conta ou redefinição de senha). */
@@ -8,7 +9,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/dashboard";
+
+  // Mesmo cuidado do login: só caminho interno, nunca domínio externo.
+  const next = caminhoInterno(searchParams.get("next"));
 
   const supabase = await createClient();
 
