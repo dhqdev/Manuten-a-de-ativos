@@ -10,6 +10,8 @@ export type Contexto = {
   orgId: string;
   organizacao: Organizacao;
   papel: PapelMembro;
+  /** Todas as empresas de que o usuário participa (para o seletor de empresa). */
+  empresas: { id: string; nome: string }[];
 };
 
 /**
@@ -26,15 +28,17 @@ export const getContexto = cache(async (): Promise<Contexto> => {
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
-  const { data: membro } = await supabase
+  const { data: membros } = await supabase
     .from("org_membros")
     .select("org_id, papel")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
-  let orgId: string | null = profile?.org_atual ?? membro?.org_id ?? null;
+  // org_atual só vale se o usuário ainda for membro dela (pode ter sido removido).
+  const daOrgAtual = membros?.find((m) => m.org_id === profile?.org_atual);
+  const membro = daOrgAtual ?? membros?.[0] ?? null;
+
+  let orgId: string | null = membro?.org_id ?? null;
 
   // Usuário criado antes do SQL rodar: monta a empresa na hora.
   if (!orgId) {
@@ -53,7 +57,13 @@ export const getContexto = cache(async (): Promise<Contexto> => {
 
   if (!organizacao) redirect("/erro-configuracao");
 
+  const ids = (membros ?? []).map((m) => m.org_id);
+  const { data: todas } = ids.length
+    ? await supabase.from("organizacoes").select("id, nome").in("id", ids).order("nome")
+    : { data: [] as { id: string; nome: string }[] };
+
   return {
+    empresas: todas ?? [{ id: orgId, nome: (organizacao as Organizacao).nome }],
     userId: user.id,
     email: user.email ?? "",
     profile: (profile ?? {

@@ -52,6 +52,32 @@ export async function salvarPerfil(fd: FormData): Promise<Resultado> {
   }
 }
 
+/** Troca a empresa ativa (para quem participa de mais de uma). */
+export async function trocarEmpresa(fd: FormData): Promise<Resultado> {
+  try {
+    const { userId } = await getContexto();
+    const supabase = await createClient();
+    const orgId = textoObrigatorio(fd, "org_id", "a empresa");
+
+    const { data: membro } = await supabase
+      .from("org_membros")
+      .select("org_id")
+      .eq("user_id", userId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (!membro) return { ok: false, erro: "Você não faz parte desta empresa." };
+
+    const { error } = await supabase.from("profiles").update({ org_atual: orgId }).eq("id", userId);
+    if (error) return { ok: false, erro: error.message };
+
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+}
+
 export async function alterarSenha(fd: FormData): Promise<Resultado> {
   try {
     const senha = String(fd.get("senha") ?? "");

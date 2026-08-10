@@ -187,6 +187,22 @@ $$;
 
 grant execute on function public.user_org_ids() to authenticated;
 
+-- Empresas em que o usuário é proprietário ou gestor (pode mexer na equipe).
+-- Também é SECURITY DEFINER: sem isso, uma policy de org_membros que consultasse
+-- a própria org_membros entraria em recursão infinita.
+create or replace function public.user_admin_org_ids()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select org_id from public.org_membros
+   where user_id = auth.uid() and papel in ('proprietario', 'gestor');
+$$;
+
+grant execute on function public.user_admin_org_ids() to authenticated;
+
 -- Cria as categorias padrão pedidas no projeto
 create or replace function public.seed_categorias_padrao(p_org uuid)
 returns void
@@ -307,6 +323,114 @@ $$;
 
 grant execute on function public.criar_workspace(text) to authenticated;
 
+-- A empresa alvo é SEMPRE passada pelo app (a mesma que está aberta na tela).
+-- Nada de "adivinhar" a empresa: se o usuário não for administrador dela, falha.
+create or replace function public.pode_gerenciar_equipe(p_org uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.org_membros
+     where org_id = p_org and user_id = auth.uid()
+       and papel in ('proprietario', 'gestor')
+  );
+$$;
+
+grant execute on function public.pode_gerenciar_equipe(uuid) to authenticated;
+
+-- Versões antigas, que deduziam a empresa sozinhas, ficavam ambíguas para quem
+-- participa de mais de uma empresa. Removidas.
+drop function if exists public.adicionar_membro(text, public.papel_membro);
+drop function if exists public.remover_membro(uuid);
+drop function if exists public.org_administrada();
+
+-- Adiciona à empresa um usuário que já tem conta no sistema.
+create or replace function public.adicionar_membro(
+  p_org   uuid,
+  p_email text,
+  p_papel public.papel_membro default 'tecnico'
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_alvo uuid;
+begin
+  if not public.pode_gerenciar_equipe(p_org) then
+    raise exception 'Você não tem permissão para gerenciar a equipe desta empresa.';
+  end if;
+
+  if p_papel = 'proprietario' then
+    raise exception 'Não é possível criar outro proprietário.';
+  end if;
+
+  select id into v_alvo from auth.users where lower(email) = lower(trim(p_email)) limit 1;
+
+  if v_alvo is null then
+    raise exception 'Nenhum usuário com este e-mail. Peça para a pessoa criar a conta primeiro.';
+  end if;
+
+  if exists (select 1 from public.org_membros where org_id = p_org and user_id = v_alvo) then
+    raise exception 'Este usuário já faz parte da equipe.';
+  end if;
+
+  insert into public.org_membros (org_id, user_id, papel) values (p_org, v_alvo, p_papel);
+  update public.profiles set org_atual = coalesce(org_atual, p_org) where id = v_alvo;
+
+  return 'ok';
+end;
+$$;
+
+grant execute on function public.adicionar_membro(uuid, text, public.papel_membro) to authenticated;
+
+-- Remove um membro da empresa (o proprietário não pode ser removido).
+create or replace function public.remover_membro(p_org uuid, p_user uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_papel   public.papel_membro;
+  v_apagados int;
+begin
+  if not public.pode_gerenciar_equipe(p_org) then
+    raise exception 'Você não tem permissão para gerenciar a equipe desta empresa.';
+  end if;
+
+  select papel into v_papel from public.org_membros where org_id = p_org and user_id = p_user;
+
+  if v_papel is null then
+    raise exception 'Esta pessoa não faz parte da equipe desta empresa.';
+  end if;
+
+  if v_papel = 'proprietario' then
+    raise exception 'O proprietário da empresa não pode ser removido.';
+  end if;
+
+  delete from public.org_membros where org_id = p_org and user_id = p_user;
+  get diagnostics v_apagados = row_count;
+
+  if v_apagados = 0 then
+    raise exception 'Nada foi removido.';
+  end if;
+
+  -- Se a pessoa estava atuando nesta empresa, joga-a para outra de que participe.
+  update public.profiles
+     set org_atual = (select org_id from public.org_membros where user_id = p_user order by created_at limit 1)
+   where id = p_user and org_atual = p_org;
+
+  return 'ok';
+end;
+$$;
+
+grant execute on function public.remover_membro(uuid, uuid) to authenticated;
+
 -- ============================================================================
 -- 6. AO REGISTRAR UMA MANUTENÇÃO, AVANÇA O PLANO PREVENTIVO
 -- ============================================================================
@@ -361,9 +485,23 @@ create trigger trg_avancar_plano
   for each row execute function public.avancar_plano_manutencao();
 
 -- ============================================================================
--- 7. ROW LEVEL SECURITY
+-- 7. PERMISSÕES + ROW LEVEL SECURITY
 --    Regra geral: o usuário só enxerga linhas da(s) empresa(s) de que é membro.
+--    Os GRANTs abrem a porta; quem filtra as linhas é o RLS abaixo.
 -- ============================================================================
+
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on
+  public.organizacoes,
+  public.profiles,
+  public.org_membros,
+  public.categorias,
+  public.ativos,
+  public.planos_manutencao,
+  public.manutencoes,
+  public.manutencao_anexos
+to authenticated;
 
 alter table public.organizacoes      enable row level security;
 alter table public.profiles          enable row level security;
@@ -409,20 +547,22 @@ drop policy if exists membros_select on public.org_membros;
 create policy membros_select on public.org_membros for select to authenticated
   using (org_id in (select public.user_org_ids()));
 
+-- Escrita separada por comando (nunca FOR ALL: isso também pegaria o SELECT
+-- e criaria recursão com a policy de leitura acima).
 drop policy if exists membros_write on public.org_membros;
-create policy membros_write on public.org_membros for all to authenticated
-  using (
-    org_id in (
-      select org_id from public.org_membros
-       where user_id = auth.uid() and papel in ('proprietario', 'gestor')
-    )
-  )
-  with check (
-    org_id in (
-      select org_id from public.org_membros
-       where user_id = auth.uid() and papel in ('proprietario', 'gestor')
-    )
-  );
+
+drop policy if exists membros_insert on public.org_membros;
+create policy membros_insert on public.org_membros for insert to authenticated
+  with check (org_id in (select public.user_admin_org_ids()));
+
+drop policy if exists membros_update on public.org_membros;
+create policy membros_update on public.org_membros for update to authenticated
+  using (org_id in (select public.user_admin_org_ids()))
+  with check (org_id in (select public.user_admin_org_ids()));
+
+drop policy if exists membros_delete on public.org_membros;
+create policy membros_delete on public.org_membros for delete to authenticated
+  using (org_id in (select public.user_admin_org_ids()));
 
 -- Policies das tabelas de dados (mesmo padrão para todas) ---------------------
 do $$

@@ -21,9 +21,17 @@ function traduzir(mensagem: string) {
   return mensagem;
 }
 
+/**
+ * Endereço público do app — usado nos links de confirmação de e-mail e de
+ * redefinição de senha. Em produção defina NEXT_PUBLIC_SITE_URL; sem ela,
+ * caímos nos cabeçalhos da requisição (que funcionam bem em desenvolvimento).
+ */
 async function origem() {
+  const configurado = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configurado) return configurado.replace(/\/+$/, "");
+
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3001";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
 }
