@@ -221,6 +221,7 @@ function CartaoPlano({
           ativos={ativos}
           ativoPadrao={p.ativo_id}
           planos={[{ id: p.id, tipo: p.tipo, ativo_id: p.ativo_id }]}
+          planoPadrao={p.id}
           rotulo="Dar baixa"
           variante="secundario"
           tamanho="sm"

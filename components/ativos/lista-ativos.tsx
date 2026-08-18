@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronRight, Gauge, Hash, Search } from "lucide-react";
+import { ChevronRight, Gauge, Hash, Package, Search } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { STATUS_ATIVO, dataBR, moeda, numero } from "@/lib/format";
 import type { Ativo, StatusAtivo } from "@/lib/types";
@@ -12,6 +12,8 @@ export type AtivoResumo = Ativo & {
   custo_total: number;
   ultima_manutencao: string | null;
   alertas: number;
+  /** Link temporário da foto — o bucket é privado. */
+  foto_assinada?: string | null;
 };
 
 export function ListaAtivos({ ativos }: { ativos: AtivoResumo[] }) {
@@ -67,6 +69,15 @@ export function ListaAtivos({ ativos }: { ativos: AtivoResumo[] }) {
               href={`/ativos/${a.id}`}
               className="card group flex items-center gap-4 p-4 transition-shadow hover:shadow-md"
             >
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
+                {a.foto_assinada ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.foto_assinada} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Package className="h-5 w-5 text-slate-400" />
+                )}
+              </span>
+
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="truncate font-semibold text-slate-900">{a.nome}</h3>

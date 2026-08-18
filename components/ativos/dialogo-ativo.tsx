@@ -2,23 +2,30 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Pencil, Plus } from "lucide-react";
+import { Camera, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import { Modal, RodapeModal } from "@/components/modal";
 import { Botao, Campo } from "@/components/ui";
-import { salvarAtivo } from "@/lib/actions/ativos";
+import { definirFotoAtivo, prepararFotoAtivo, salvarAtivo } from "@/lib/actions/ativos";
+import { createClient } from "@/lib/supabase/client";
 import { STATUS_ATIVO, hoje } from "@/lib/format";
 import type { Ativo, Categoria, StatusAtivo } from "@/lib/types";
+
+/** Acima disto o envio fica lento no celular e o bucket recusa a partir de 25 MB. */
+const TAMANHO_MAXIMO = 10 * 1024 * 1024;
 
 export function DialogoAtivo({
   categorias,
   categoriaPadrao,
   ativo,
+  fotoAtual,
   rotulo = "Novo ativo",
   variante = "primario",
 }: {
   categorias: Pick<Categoria, "id" | "nome">[];
   categoriaPadrao?: string;
   ativo?: Ativo;
+  /** Link temporário da foto já salva, para mostrar na edição. */
+  fotoAtual?: string | null;
   rotulo?: string;
   variante?: "primario" | "secundario";
 }) {
@@ -27,17 +34,92 @@ export function DialogoAtivo({
 
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<string | null>(null);
+  const [foto, setFoto] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [removerFoto, setRemoverFoto] = useState(false);
   const [enviando, iniciar] = useTransition();
+
+  // Mostra a foto nova escolhida; senão a que já está salva (a não ser que o
+  // usuário tenha pedido para remover).
+  const imagem = previa ?? (removerFoto ? null : (fotoAtual ?? null));
+
+  function fechar() {
+    if (enviando) return;
+    setAberto(false);
+    limparFoto();
+    setErro(null);
+    setProgresso(null);
+  }
+
+  function limparFoto() {
+    if (previa) URL.revokeObjectURL(previa);
+    setFoto(null);
+    setPrevia(null);
+    setRemoverFoto(false);
+  }
+
+  function escolherFoto(arquivo: File | undefined) {
+    if (!arquivo) return;
+
+    if (arquivo.size > TAMANHO_MAXIMO) {
+      setErro("A foto passa de 10 MB. Escolha uma imagem menor.");
+      return;
+    }
+
+    setErro(null);
+    if (previa) URL.revokeObjectURL(previa);
+    setFoto(arquivo);
+    setPrevia(URL.createObjectURL(arquivo));
+    setRemoverFoto(false);
+  }
 
   function enviar(fd: FormData) {
     setErro(null);
     iniciar(async () => {
       const r = await salvarAtivo(fd);
-      if (!r.ok) setErro(r.erro);
-      else {
-        setAberto(false);
-        router.refresh();
+      if (!r.ok) {
+        setErro(r.erro);
+        return;
       }
+
+      // A foto vai depois: num cadastro novo o id do ativo só existe agora.
+      if (foto && r.id) {
+        setProgresso("Enviando a foto...");
+
+        const assinado = await prepararFotoAtivo(r.id, foto.name);
+        if (!assinado.ok) {
+          setErro(`Ativo salvo, mas a foto falhou: ${assinado.erro}`);
+          setProgresso(null);
+          router.refresh();
+          return;
+        }
+
+        const supabase = createClient();
+        const { error } = await supabase.storage
+          .from("manutencoes")
+          .uploadToSignedUrl(assinado.caminho, assinado.token, foto);
+
+        if (error) {
+          setErro(`Ativo salvo, mas a foto falhou: ${error.message}`);
+          setProgresso(null);
+          router.refresh();
+          return;
+        }
+
+        const gravou = await definirFotoAtivo(r.id, assinado.caminho);
+        if (!gravou.ok) {
+          setErro(`Ativo salvo, mas a foto falhou: ${gravou.erro}`);
+          setProgresso(null);
+          router.refresh();
+          return;
+        }
+      }
+
+      setProgresso(null);
+      limparFoto();
+      setAberto(false);
+      router.refresh();
     });
   }
 
@@ -57,7 +139,7 @@ export function DialogoAtivo({
 
       <Modal
         aberto={aberto}
-        aoFechar={() => !enviando && setAberto(false)}
+        aoFechar={fechar}
         titulo={editando ? "Editar ativo" : "Cadastrar ativo"}
         descricao="Dados de identificação do equipamento."
       >
@@ -70,6 +152,57 @@ export function DialogoAtivo({
             )}
 
             {ativo && <input type="hidden" name="id" value={ativo.id} />}
+            {removerFoto && <input type="hidden" name="remover_foto" value="1" />}
+
+            {/* Foto do ativo */}
+            <div className="flex items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+              <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+                {imagem ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imagem} alt="Foto do ativo" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-slate-400" />
+                )}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-slate-800">Foto do ativo</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  JPG, PNG, WEBP ou HEIC — até 10 MB.
+                </p>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                    {imagem ? "Trocar foto" : "Escolher foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        escolherFoto(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+
+                  {imagem && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (previa) URL.revokeObjectURL(previa);
+                        setFoto(null);
+                        setPrevia(null);
+                        setRemoverFoto(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Nome do ativo" obrigatorio className="sm:col-span-2">
@@ -173,7 +306,10 @@ export function DialogoAtivo({
           </div>
 
           <RodapeModal>
-            <Botao type="button" variante="secundario" onClick={() => setAberto(false)} disabled={enviando}>
+            {progresso && (
+              <span className="mr-auto self-center text-sm text-slate-500">{progresso}</span>
+            )}
+            <Botao type="button" variante="secundario" onClick={fechar} disabled={enviando}>
               Cancelar
             </Botao>
             <Botao type="submit" disabled={enviando}>

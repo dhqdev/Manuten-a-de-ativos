@@ -4,6 +4,7 @@ import { ArrowLeft, Package } from "lucide-react";
 import { DialogoAtivo } from "@/components/ativos/dialogo-ativo";
 import { ListaAtivos, type AtivoResumo } from "@/components/ativos/lista-ativos";
 import { Cabecalho, EstadoVazio } from "@/components/ui";
+import { urlsDasFotos } from "@/lib/fotos";
 import { IconeCategoria } from "@/lib/icones";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -55,6 +56,8 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
     }
   }
 
+  const fotos = await urlsDasFotos((ativos ?? []).map((a) => a.foto_url));
+
   const lista: AtivoResumo[] = ((ativos ?? []) as Ativo[]).map((a) => {
     const r = resumo.get(a.id);
     return {
@@ -63,6 +66,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
       custo_total: r?.custo ?? 0,
       ultima_manutencao: r?.ultima ?? null,
       alertas: alertas.get(a.id) ?? 0,
+      foto_assinada: a.foto_url ? (fotos.get(a.foto_url) ?? null) : null,
     };
   });
 

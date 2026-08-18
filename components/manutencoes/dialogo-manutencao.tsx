@@ -6,11 +6,15 @@ import { LoaderCircle, Paperclip, Pencil, Plus, X } from "lucide-react";
 import { Modal, RodapeModal } from "@/components/modal";
 import { Botao, Campo } from "@/components/ui";
 import { registrarAnexo, salvarManutencao } from "@/lib/actions/manutencoes";
+import { criarUploadAssinado } from "@/lib/actions/upload";
 import { createClient } from "@/lib/supabase/client";
 import { TIPOS_MANUTENCAO, hoje } from "@/lib/format";
 import type { Manutencao, PlanoManutencao, TipoManutencao } from "@/lib/types";
 
 type AtivoOpcao = { id: string; nome: string; identificacao: string | null };
+
+/** Valor sentinela do select: cria a periódica junto com o registro. */
+const NOVA_PERIODICA = "__nova__";
 
 /** Deixa o nome do arquivo seguro para virar chave no storage. */
 function nomeSeguro(nome: string) {
@@ -26,6 +30,7 @@ export function DialogoManutencao({
   ativos,
   ativoPadrao,
   planos = [],
+  planoPadrao,
   manutencao,
   rotulo = "Registrar manutenção",
   variante = "primario",
@@ -35,6 +40,8 @@ export function DialogoManutencao({
   ativos: AtivoOpcao[];
   ativoPadrao?: string;
   planos?: Pick<PlanoManutencao, "id" | "tipo" | "ativo_id">[];
+  /** Já vem escolhida ao abrir pelo "Dar baixa" de uma periódica. */
+  planoPadrao?: string;
   manutencao?: Manutencao;
   rotulo?: string;
   variante?: "primario" | "secundario";
@@ -48,9 +55,11 @@ export function DialogoManutencao({
   const [progresso, setProgresso] = useState<string | null>(null);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [ativoId, setAtivoId] = useState(manutencao?.ativo_id ?? ativoPadrao ?? "");
+  const [planoId, setPlanoId] = useState(manutencao?.plano_id ?? planoPadrao ?? "");
   const [enviando, iniciar] = useTransition();
 
   const planosDoAtivo = planos.filter((p) => p.ativo_id === ativoId);
+  const criandoPeriodica = planoId === NOVA_PERIODICA;
 
   function fechar() {
     if (enviando) return;
@@ -77,10 +86,19 @@ export function DialogoManutencao({
           setProgresso(`Enviando anexo ${i + 1} de ${arquivos.length}...`);
           const caminho = `${orgId}/${r.id}/${crypto.randomUUID()}-${nomeSeguro(arquivo.name)}`;
 
-          const { error } = await supabase.storage.from("manutencoes").upload(caminho, arquivo, {
-            cacheControl: "3600",
-            upsert: false,
-          });
+          // A sessão é httpOnly, então aqui não há login: o servidor assina o
+          // envio e o arquivo vai direto do navegador para o Storage.
+          const assinado = await criarUploadAssinado(caminho);
+          if (!assinado.ok) {
+            setErro(`Manutenção salva, mas o anexo "${arquivo.name}" falhou: ${assinado.erro}`);
+            setProgresso(null);
+            router.refresh();
+            return;
+          }
+
+          const { error } = await supabase.storage
+            .from("manutencoes")
+            .uploadToSignedUrl(assinado.caminho, assinado.token, arquivo);
 
           if (error) {
             setErro(`Manutenção salva, mas o anexo "${arquivo.name}" falhou: ${error.message}`);
@@ -148,7 +166,10 @@ export function DialogoManutencao({
                   name="ativo_id"
                   required
                   value={ativoId}
-                  onChange={(e) => setAtivoId(e.target.value)}
+                  onChange={(e) => {
+                    setAtivoId(e.target.value);
+                    setPlanoId("");
+                  }}
                   className="campo"
                 >
                   <option value="" disabled>
@@ -174,7 +195,11 @@ export function DialogoManutencao({
               </Campo>
 
               <Campo label="Tipo">
-                <select name="tipo" defaultValue={manutencao?.tipo ?? "corretiva"} className="campo">
+                <select
+                  name="tipo"
+                  defaultValue={manutencao?.tipo ?? (planoPadrao ? "preventiva" : "corretiva")}
+                  className="campo"
+                >
                   {(Object.keys(TIPOS_MANUTENCAO) as TipoManutencao[]).map((t) => (
                     <option key={t} value={t}>
                       {TIPOS_MANUTENCAO[t]}
@@ -184,19 +209,70 @@ export function DialogoManutencao({
               </Campo>
 
               <Campo
-                label="Plano preventivo"
-                hint="Ao vincular, a próxima data do plano é recalculada."
+                label="Manutenção periódica"
+                hint="Ao vincular, a próxima data é recalculada automaticamente."
                 className="lg:col-span-2"
               >
-                <select name="plano_id" defaultValue={manutencao?.plano_id ?? ""} className="campo">
-                  <option value="">Nenhum (manutenção avulsa)</option>
+                <select
+                  value={planoId}
+                  onChange={(e) => setPlanoId(e.target.value)}
+                  className="campo"
+                >
+                  <option value="">Nenhuma (manutenção avulsa)</option>
                   {planosDoAtivo.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.tipo}
                     </option>
                   ))}
+                  <option value={NOVA_PERIODICA}>+ Criar nova periódica...</option>
                 </select>
               </Campo>
+
+              {criandoPeriodica ? (
+                <input type="hidden" name="criar_plano" value="1" />
+              ) : (
+                <input type="hidden" name="plano_id" value={planoId} />
+              )}
+
+              {criandoPeriodica && (
+                <>
+                  <Campo
+                    label="Nome da periódica"
+                    obrigatorio
+                    hint="Como ela aparece na lista de preventivas."
+                    className="sm:col-span-2"
+                  >
+                    <input
+                      name="plano_tipo"
+                      required
+                      placeholder="Ex.: Limpeza e lubrificação"
+                      className="campo"
+                    />
+                  </Campo>
+
+                  <Campo label="Repetir a cada" obrigatorio>
+                    <div className="flex gap-2">
+                      <input
+                        name="plano_periodicidade_valor"
+                        type="number"
+                        min={1}
+                        required
+                        defaultValue={15}
+                        className="campo w-24"
+                      />
+                      <select
+                        name="plano_periodicidade_unidade"
+                        defaultValue="dias"
+                        className="campo flex-1"
+                      >
+                        <option value="dias">dia(s)</option>
+                        <option value="meses">mês(es)</option>
+                        <option value="horas">hora(s) de uso</option>
+                      </select>
+                    </div>
+                  </Campo>
+                </>
+              )}
 
               <Campo label="Descrição do serviço realizado" obrigatorio className="sm:col-span-2 lg:col-span-3">
                 <textarea

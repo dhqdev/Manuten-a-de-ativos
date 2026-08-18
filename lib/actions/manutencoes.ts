@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  booleano,
   data,
   inteiro,
   mensagemErro,
@@ -12,7 +13,7 @@ import {
   textoObrigatorio,
   type Resultado,
 } from "@/lib/form";
-import type { TipoManutencao } from "@/lib/types";
+import type { TipoManutencao, UnidadePeriodicidade } from "@/lib/types";
 
 function revalidarTudo() {
   revalidatePath("/dashboard");
@@ -22,26 +23,141 @@ function revalidarTudo() {
   revalidatePath("/ativos", "layout");
 }
 
+/** Soma dias a uma data "AAAA-MM-DD" sem passar pelo fuso local. */
+function somarDias(iso: string, dias: number) {
+  const [a, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + dias);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Soma meses sem estourar para o mês seguinte (31/01 + 1 mês = 28/02). */
+function somarMeses(iso: string, meses: number) {
+  const [a, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, 1));
+  dt.setUTCMonth(dt.getUTCMonth() + meses);
+  const ultimoDia = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+  dt.setUTCDate(Math.min(d, ultimoDia));
+  return dt.toISOString().slice(0, 10);
+}
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Avança a periódica depois da baixa.
+ *
+ * O banco já faz isso no trigger trg_avancar_plano (supabase/schema.sql), mas
+ * numa base onde o SQL não foi aplicado a baixa não recalcularia nada. O cálculo
+ * é o mesmo e parte sempre da data do serviço — rodar duas vezes dá no mesmo.
+ */
+async function avancarPlano(
+  supabase: Supabase,
+  planoId: string,
+  dataManutencao: string,
+  horimetro: number | null,
+) {
+  const { data: p } = await supabase
+    .from("planos_manutencao")
+    .select("periodicidade_valor, periodicidade_unidade, ultimo_horimetro")
+    .eq("id", planoId)
+    .maybeSingle();
+
+  if (!p?.periodicidade_valor) return;
+
+  const avanco =
+    p.periodicidade_unidade === "dias"
+      ? { proxima_data: somarDias(dataManutencao, p.periodicidade_valor) }
+      : p.periodicidade_unidade === "meses"
+        ? { proxima_data: somarMeses(dataManutencao, p.periodicidade_valor) }
+        : {
+            proximo_horimetro:
+              Number(horimetro ?? p.ultimo_horimetro ?? 0) + p.periodicidade_valor,
+          };
+
+  await supabase
+    .from("planos_manutencao")
+    .update({
+      ultima_data: dataManutencao,
+      ultimo_horimetro: horimetro ?? p.ultimo_horimetro,
+      ...avanco,
+    })
+    .eq("id", planoId);
+}
+
 export async function salvarManutencao(fd: FormData): Promise<Resultado> {
   try {
     const { orgId, userId } = await getContexto();
     const supabase = await createClient();
 
     const id = texto(fd, "id");
+    const ativoId = textoObrigatorio(fd, "ativo_id", "o ativo");
+    const dataManutencao = data(fd, "data_manutencao") ?? new Date().toLocaleDateString("sv-SE");
+    const horimetro = numero(fd, "horimetro");
+    const valor = numero(fd, "valor") ?? 0;
+    const responsavel = texto(fd, "responsavel");
+
+    let planoId = texto(fd, "plano_id");
+
+    // "Repetir esta manutenção": cria o plano periódico junto com o registro,
+    // para quem não quer sair da tela e cadastrar a preventiva à parte.
+    if (booleano(fd, "criar_plano")) {
+      const periodicidade = inteiro(fd, "plano_periodicidade_valor", 0) ?? 0;
+      const unidade = (texto(fd, "plano_periodicidade_unidade") ??
+        "meses") as UnidadePeriodicidade;
+
+      if (periodicidade <= 0) {
+        return { ok: false, erro: "Informe de quanto em quanto tempo ela se repete." };
+      }
+      if (unidade === "horas" && horimetro === null) {
+        return {
+          ok: false,
+          erro: "Para repetir por horas de uso, informe o horímetro / KM na data.",
+        };
+      }
+
+      const { data: plano, error: erroPlano } = await supabase
+        .from("planos_manutencao")
+        .insert({
+          org_id: orgId,
+          ativo_id: ativoId,
+          tipo: textoObrigatorio(fd, "plano_tipo", "o nome da manutenção periódica"),
+          periodicidade_valor: periodicidade,
+          periodicidade_unidade: unidade,
+          proxima_data:
+            unidade === "dias"
+              ? somarDias(dataManutencao, periodicidade)
+              : unidade === "meses"
+                ? somarMeses(dataManutencao, periodicidade)
+                : null,
+          proximo_horimetro:
+            unidade === "horas" ? Number(horimetro) + periodicidade : null,
+          ultima_data: dataManutencao,
+          ultimo_horimetro: horimetro,
+          responsavel,
+          custo_estimado: valor || null,
+          ativo: true,
+        })
+        .select("id")
+        .single();
+
+      if (erroPlano) return { ok: false, erro: erroPlano.message };
+      planoId = plano.id;
+    }
+
     const dados = {
       org_id: orgId,
-      ativo_id: textoObrigatorio(fd, "ativo_id", "o ativo"),
-      plano_id: texto(fd, "plano_id"),
+      ativo_id: ativoId,
+      plano_id: planoId,
       tipo: (texto(fd, "tipo") ?? "corretiva") as TipoManutencao,
-      data_manutencao: data(fd, "data_manutencao") ?? new Date().toLocaleDateString("sv-SE"),
+      data_manutencao: dataManutencao,
       descricao: textoObrigatorio(fd, "descricao", "a descrição do serviço"),
       pecas: texto(fd, "pecas"),
-      valor: numero(fd, "valor") ?? 0,
-      responsavel: texto(fd, "responsavel"),
+      valor,
+      responsavel,
       empresa: texto(fd, "empresa"),
       nota_fiscal: texto(fd, "nota_fiscal"),
       garantia_dias: inteiro(fd, "garantia_dias", 0) ?? 0,
-      horimetro: numero(fd, "horimetro"),
+      horimetro,
       observacoes: texto(fd, "observacoes"),
     };
 
@@ -54,6 +170,8 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
           .single();
 
     if (error) return { ok: false, erro: error.message };
+
+    if (!id && planoId) await avancarPlano(supabase, planoId, dataManutencao, horimetro);
 
     revalidarTudo();
     return { ok: true, id: linha.id };

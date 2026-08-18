@@ -11,7 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Badge, Botao, Campo, Secao, cn } from "@/components/ui";
-import { createClient } from "@/lib/supabase/client";
+import { dadosDoRelatorio } from "@/lib/actions/relatorios";
 import {
   SITUACAO_PLANO,
   TIPOS_MANUTENCAO,
@@ -42,12 +42,10 @@ const ATALHOS = [
 
 export function GeradorRelatorio({
   empresa,
-  orgId,
   categorias,
   ativos,
 }: {
   empresa: string;
-  orgId: string;
   categorias: Opcao[];
   ativos: AtivoOpcao[];
 }) {
@@ -76,49 +74,19 @@ export function GeradorRelatorio({
   const buscar = useCallback(async () => {
     setCarregando(true);
     setErro(null);
-    const supabase = createClient();
 
-    let qm = supabase
-      .from("vw_manutencoes_completo")
-      .select("*")
-      .eq("org_id", orgId)
-      .gte("data_manutencao", de)
-      .lte("data_manutencao", ate)
-      .order("data_manutencao", { ascending: false });
+    const r = await dadosDoRelatorio({ de, ate, categoria, ativo, tipo });
 
-    let qp = supabase
-      .from("vw_planos_status")
-      .select("*")
-      .eq("org_id", orgId)
-      .eq("ativo", true)
-      .neq("situacao", "inativo");
-
-    if (categoria !== "todas") {
-      qm = qm.eq("categoria_id", categoria);
-      qp = qp.eq("categoria_id", categoria);
-    }
-    if (ativo !== "todos") {
-      qm = qm.eq("ativo_id", ativo);
-      qp = qp.eq("ativo_id", ativo);
-    }
-    if (tipo !== "todos") qm = qm.eq("tipo", tipo);
-
-    const [rm, rp] = await Promise.all([qm, qp]);
-
-    if (rm.error || rp.error) {
-      setErro(rm.error?.message ?? rp.error?.message ?? "Erro ao carregar os dados.");
+    if (!r.ok) {
+      setErro(r.erro);
       setManutencoes([]);
       setProximas([]);
     } else {
-      setManutencoes((rm.data ?? []) as ManutencaoCompleta[]);
-      setProximas(
-        ((rp.data ?? []) as PlanoStatus[]).sort((a, b) =>
-          (a.proxima_data ?? "9999").localeCompare(b.proxima_data ?? "9999"),
-        ),
-      );
+      setManutencoes(r.manutencoes);
+      setProximas(r.proximas);
     }
     setCarregando(false);
-  }, [orgId, de, ate, categoria, ativo, tipo]);
+  }, [de, ate, categoria, ativo, tipo]);
 
   useEffect(() => {
     buscar();

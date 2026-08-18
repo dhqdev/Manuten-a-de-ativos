@@ -136,3 +136,16 @@ export type DashboardResumo = {
   alertas_proximas: number;
   alertas_atrasadas: number;
 };
+
+/** Filtros escolhidos na tela de relatórios. */
+export type FiltrosRelatorio = {
+  de: string;
+  ate: string;
+  categoria: string;
+  ativo: string;
+  tipo: "todos" | TipoManutencao;
+};
+
+export type DadosDoRelatorio =
+  | { ok: true; manutencoes: ManutencaoCompleta[]; proximas: PlanoStatus[] }
+  | { ok: false; erro: string };

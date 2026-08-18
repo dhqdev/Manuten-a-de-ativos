@@ -10,6 +10,7 @@ import { DialogoPlano } from "@/components/planos/dialogo-plano";
 import { ListaPlanos } from "@/components/planos/lista-planos";
 import { Badge, Cabecalho, EstadoVazio } from "@/components/ui";
 import { excluirAtivo } from "@/lib/actions/ativos";
+import { urlsDasFotos } from "@/lib/fotos";
 import { IconeCategoria } from "@/lib/icones";
 import { STATUS_ATIVO, dataBR, moeda, numero } from "@/lib/format";
 import { getContexto } from "@/lib/session";
@@ -73,6 +74,9 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
   }
 
   const item = ativo as Ativo & { categoria: Categoria };
+  const fotoUrl = item.foto_url
+    ? ((await urlsDasFotos([item.foto_url])).get(item.foto_url) ?? null)
+    : null;
   const listaPlanos = (planos ?? []) as PlanoStatus[];
   const opcoesAtivos = ativosOrg ?? [];
   const opcoesPlanos = listaPlanos.map((p) => ({ id: p.id, tipo: p.tipo, ativo_id: p.ativo_id }));
@@ -98,7 +102,7 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
         descricao={[item.marca, item.modelo, item.identificacao].filter(Boolean).join(" · ")}
         acoes={
           <>
-            <DialogoAtivo categorias={categorias ?? []} ativo={item} />
+            <DialogoAtivo categorias={categorias ?? []} ativo={item} fotoAtual={fotoUrl} />
             <BotaoExcluir
               acao={excluirAtivo.bind(null, item.id)}
               titulo="Excluir ativo"
@@ -222,6 +226,17 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
                     </Badge>
                   </div>
                 </div>
+
+                {fotoUrl && (
+                  <div className="mb-5 overflow-hidden rounded-xl ring-1 ring-slate-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={fotoUrl}
+                      alt={`Foto de ${item.nome}`}
+                      className="max-h-80 w-full bg-slate-50 object-contain"
+                    />
+                  </div>
+                )}
 
                 <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <Dado rotulo="Nome do ativo" valor={item.nome} />

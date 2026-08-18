@@ -40,7 +40,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
+    // Extensões como o Dark Reader carimbam atributos no <html> antes do React
+    // hidratar, o que virava erro de hidratação em dev. Vale só para este
+    // elemento: divergência real dentro do app continua sendo reportada.
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <body className="font-sans">
         {children}
         <RegistrarServiceWorker />

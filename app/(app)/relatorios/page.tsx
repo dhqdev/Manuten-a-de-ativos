@@ -22,7 +22,6 @@ export default async function RelatoriosPage() {
       />
       <GeradorRelatorio
         empresa={organizacao.nome}
-        orgId={orgId}
         categorias={categorias ?? []}
         ativos={ativos ?? []}
       />
