@@ -51,17 +51,17 @@ export default async function AtivosPage() {
           acao={<DialogoCategoria />}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="lista-escalonada grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {lista.map((c) => {
             const total = porCategoria.get(c.id) ?? 0;
             return (
-              <div key={c.id} className="card group relative overflow-hidden p-5 transition-shadow hover:shadow-md">
+              <div key={c.id} className="card group relative overflow-hidden p-5 transition-[box-shadow,border-color] duration-300 hover:border-slate-300 hover:shadow-elevada">
                 <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: c.cor }} />
 
                 <div className="flex items-start justify-between gap-3">
                   <Link href={`/ativos/categoria/${c.id}`} className="flex min-w-0 flex-1 items-start gap-3">
                     <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
                       style={{ backgroundColor: c.cor }}
                     >
                       <IconeCategoria nome={c.icone} className="h-5 w-5" />

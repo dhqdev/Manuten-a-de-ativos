@@ -62,12 +62,12 @@ export function ListaAtivos({ ativos }: { ativos: AtivoResumo[] }) {
           Nenhum ativo encontrado com esses filtros.
         </p>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="lista-escalonada grid gap-3 lg:grid-cols-2">
           {filtrados.map((a) => (
             <Link
               key={a.id}
               href={`/ativos/${a.id}`}
-              className="card group flex items-center gap-4 p-4 transition-shadow hover:shadow-md"
+              className="card cartao-vivo pressionavel group flex items-center gap-4 p-4"
             >
               <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
                 {a.foto_assinada ? (

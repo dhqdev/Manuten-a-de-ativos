@@ -85,19 +85,21 @@ export function Navegacao({
               key={href}
               href={href}
               className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                "pressionavel group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
                 ativo(href)
                   ? "bg-white/10 font-medium text-white"
                   : "text-slate-400 hover:bg-white/5 hover:text-slate-100",
               )}
             >
               {ativo(href) && (
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-marca-400" />
+                <span className="pop-in absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-marca-400" />
               )}
               <Icone
                 className={cn(
                   "h-[18px] w-[18px] shrink-0 transition-colors",
-                  ativo(href) ? "text-marca-400" : "text-slate-500 group-hover:text-slate-300",
+                  ativo(href)
+                    ? "text-marca-400"
+                    : "text-slate-500 group-hover:translate-x-0.5 group-hover:text-slate-300",
                 )}
               />
               <span className="flex-1">{rotulo}</span>
@@ -158,7 +160,9 @@ export function Navegacao({
         </header>
 
         <main className="min-w-0 flex-1 p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div key={pathname} className="entrada-pagina mx-auto w-full max-w-7xl">
+            {children}
+          </div>
         </main>
       </div>
 
@@ -200,7 +204,7 @@ export function Navegacao({
                   key={href}
                   href={href}
                   className={cn(
-                    "flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border text-center transition-colors",
+                    "pressionavel flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border text-center",
                     ativo(href)
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-slate-50 text-slate-700 active:bg-slate-100",
@@ -235,12 +239,12 @@ export function Navegacao({
               key={href}
               href={href}
               className={cn(
-                "relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                "pressionavel relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
                 ativo(href) ? "text-slate-900" : "text-slate-500 active:text-slate-900",
               )}
             >
               {ativo(href) && (
-                <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-slate-900" />
+                <span className="pop-in absolute top-0 h-0.5 w-8 rounded-b-full bg-slate-900" />
               )}
               <span className="relative">
                 <Icone className={cn("h-[22px] w-[22px]", ativo(href) && "stroke-[2.3]")} />

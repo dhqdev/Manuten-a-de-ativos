@@ -8,6 +8,7 @@ import {
   TriangleAlert,
   Wallet,
 } from "lucide-react";
+import { Contador } from "@/components/efeitos/contador";
 import { BarrasCategoria, type GastoCategoria } from "@/components/dashboard/barras-categoria";
 import { GraficoMensal, type PontoMensal } from "@/components/dashboard/grafico-mensal";
 import { Badge, BotaoLink, Cabecalho, EstadoVazio, Secao } from "@/components/ui";
@@ -129,12 +130,12 @@ export default async function DashboardPage() {
       />
 
       {/* Indicadores */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="lista-escalonada grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Indicador
           href="/ativos"
           icone={<Package className="h-5 w-5" />}
           rotulo="Ativos cadastrados"
-          valor={numero(totalAtivos)}
+          valor={<Contador valor={Number(totalAtivos)} />}
           detalhe="Equipamentos em operação"
           tom="neutro"
         />
@@ -142,7 +143,7 @@ export default async function DashboardPage() {
           href="/manutencoes?filtro=alertas"
           icone={<CalendarClock className="h-5 w-5" />}
           rotulo="Vencendo em breve"
-          valor={numero(proximas)}
+          valor={<Contador valor={proximas} />}
           detalhe={proximas > 0 ? "Manutenções a programar" : "Nada vencendo agora"}
           tom={proximas > 0 ? "aviso" : "neutro"}
         />
@@ -150,7 +151,7 @@ export default async function DashboardPage() {
           href="/manutencoes?filtro=alertas"
           icone={<TriangleAlert className="h-5 w-5" />}
           rotulo="Atrasadas"
-          valor={numero(atrasadas)}
+          valor={<Contador valor={atrasadas} />}
           detalhe={atrasadas > 0 ? "Exigem ação imediata" : "Nenhuma pendência"}
           tom={atrasadas > 0 ? "critico" : "neutro"}
         />
@@ -158,7 +159,7 @@ export default async function DashboardPage() {
           href="/relatorios"
           icone={<Wallet className="h-5 w-5" />}
           rotulo="Gastos no mês"
-          valor={moeda(resumo.gasto_mes ?? 0)}
+          valor={<Contador valor={Number(resumo.gasto_mes ?? 0)} formato="moeda" />}
           detalhe={`${numero(resumo.manutencoes_mes ?? 0)} manutenção(ões) · ${moeda(
             resumo.gasto_ano ?? 0,
           )} no ano`}
@@ -314,7 +315,7 @@ function Indicador({
   href: string;
   icone: React.ReactNode;
   rotulo: string;
-  valor: string;
+  valor: React.ReactNode;
   detalhe: string;
   tom: "neutro" | "aviso" | "critico";
 }) {
@@ -325,13 +326,13 @@ function Indicador({
   }[tom];
 
   return (
-    <Link href={href} className="card group p-5 transition-shadow hover:shadow-md">
+    <Link href={href} className="card cartao-vivo pressionavel group p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{rotulo}</p>
           <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{valor}</p>
         </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cores}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${cores}`}>
           {icone}
         </span>
       </div>
