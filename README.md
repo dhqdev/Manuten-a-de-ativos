@@ -77,7 +77,7 @@ Para publicar na Vercel, veja [DEPLOY.md](DEPLOY.md).
 | **Manutenções** | Todas as preventivas com alertas de atraso/vencimento + histórico geral |
 | **Calendário** | Mês a mês, com realizadas (verde), programadas (azul) e atrasadas (vermelho). Filtra por categoria e por situação |
 | **Estoque** | Pneus com número de fogo, medida, DOT, sulco, valor e situação (estoque, em uso, recapagem, descarte). Movimentações com veículo, posição e KM, e histórico de cada pneu |
-| **Relatórios** | Filtra por período, uma ou mais categorias, ativo e tipo. Histórico com horímetro/KM. Gera PDF e compartilha no WhatsApp |
+| **Relatórios** | Filtra por período, uma ou mais categorias, ativo e tipo. Histórico com horímetro/KM e seção de pneus (gastos, movimentações, sulco baixo). Gera PDF e compartilha no WhatsApp |
 | **Configurações** | Dados da empresa, perfil, senha, **WhatsApp** (com horário do envio), equipe e acessos, empresa ativa |
 
 ### Aplicativo no celular (PWA)
