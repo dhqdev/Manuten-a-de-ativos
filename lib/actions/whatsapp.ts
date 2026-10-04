@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { booleano, inteiro, mensagemErro, type Resultado } from "@/lib/form";
+import {
+  erroBanco,
+  booleano,
+  inteiro,
+  mensagemErro,
+  type Resultado,
+} from "@/lib/form";
 import {
   abrirConexao,
   dadosInstancia,
@@ -144,7 +150,7 @@ export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultad
       })
       .eq("org_id", orgId);
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/configuracoes");
     return { ok: true };
@@ -170,7 +176,7 @@ export async function enviarResumoTeste(): Promise<Resultado> {
     }
 
     const { data: pendencias, error } = await supabase.rpc("whatsapp_pendencias", { p_org: orgId });
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     const texto = montarResumo(organizacao.nome, pendencias ?? [], true);
     await enviarTexto(conexao.instancia, conexao.numero, texto);

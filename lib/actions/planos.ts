@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  erroBanco,
   booleano,
   data,
   inteiro,
@@ -63,7 +64,7 @@ export async function salvarPlano(fd: FormData): Promise<Resultado> {
       ? await supabase.from("planos_manutencao").update(dados).eq("id", id).select("id").single()
       : await supabase.from("planos_manutencao").insert(dados).select("id").single();
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidar();
     return { ok: true, id: linha.id };
@@ -76,7 +77,7 @@ export async function excluirPlano(id: string): Promise<Resultado> {
   try {
     const supabase = await createClient();
     const { error } = await supabase.from("planos_manutencao").delete().eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
     revalidar();
     return { ok: true };
   } catch (e) {
@@ -88,7 +89,7 @@ export async function alternarPlano(id: string, ativo: boolean): Promise<Resulta
   try {
     const supabase = await createClient();
     const { error } = await supabase.from("planos_manutencao").update({ ativo }).eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
     revalidar();
     return { ok: true };
   } catch (e) {

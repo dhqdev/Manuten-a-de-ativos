@@ -1,10 +1,12 @@
 import { CalendarClock, ClipboardList, Package, TriangleAlert } from "lucide-react";
 import { Abas } from "@/components/abas";
+import { LimparHistorico } from "@/components/manutencoes/limpar-historico";
 import { DialogoManutencao } from "@/components/manutencoes/dialogo-manutencao";
 import { ListaManutencoes, type AnexoComUrl, type ItemManutencao } from "@/components/manutencoes/lista-manutencoes";
 import { DialogoPlano } from "@/components/planos/dialogo-plano";
 import { ListaPlanos } from "@/components/planos/lista-planos";
 import { BotaoLink, Cabecalho, EstadoVazio } from "@/components/ui";
+import { podeGerenciar, podeRegistrar } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { PlanoStatus, SituacaoPlano } from "@/lib/types";
@@ -17,7 +19,9 @@ export default async function ManutencoesPage({
   searchParams: Promise<{ filtro?: string }>;
 }) {
   const { filtro } = await searchParams;
-  const { orgId } = await getContexto();
+  const { orgId, papel } = await getContexto();
+  const gestor = podeGerenciar(papel);
+  const registra = podeRegistrar(papel);
   const supabase = await createClient();
 
   const [{ data: planos }, { data: historico }, { data: ativos }] = await Promise.all([
@@ -84,8 +88,11 @@ export default async function ManutencoesPage({
         descricao="Preventivas programadas, alertas de vencimento e histórico de serviços."
         acoes={
           <>
-            <DialogoPlano ativos={opcoesAtivos} variante="secundario" />
-            <DialogoManutencao orgId={orgId} ativos={opcoesAtivos} planos={opcoesPlanos} />
+            {gestor && lista.length > 0 && <LimparHistorico ativos={opcoesAtivos} />}
+            {gestor && <DialogoPlano ativos={opcoesAtivos} variante="secundario" />}
+            {registra && (
+              <DialogoManutencao orgId={orgId} ativos={opcoesAtivos} planos={opcoesPlanos} />
+            )}
           </>
         }
       />
@@ -123,7 +130,7 @@ export default async function ManutencoesPage({
                   icone={<CalendarClock className="h-6 w-6" />}
                   titulo="Nenhuma manutenção periódica cadastrada"
                   descricao="Programe manutenções por dias, meses ou horas de uso e receba alertas antes do vencimento."
-                  acao={<DialogoPlano ativos={opcoesAtivos} />}
+                  acao={gestor ? <DialogoPlano ativos={opcoesAtivos} /> : undefined}
                 />
               ) : (
                 <ListaPlanos
@@ -146,7 +153,9 @@ export default async function ManutencoesPage({
                   titulo="Nenhuma manutenção registrada"
                   descricao="Registre os serviços executados para acompanhar custos e histórico."
                   acao={
-                    <DialogoManutencao orgId={orgId} ativos={opcoesAtivos} planos={opcoesPlanos} />
+                    registra ? (
+                      <DialogoManutencao orgId={orgId} ativos={opcoesAtivos} planos={opcoesPlanos} />
+                    ) : undefined
                   }
                 />
               ) : (

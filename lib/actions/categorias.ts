@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { inteiro, mensagemErro, texto, textoObrigatorio, type Resultado } from "@/lib/form";
+import {
+  erroBanco,
+  inteiro,
+  mensagemErro,
+  texto,
+  textoObrigatorio,
+  type Resultado,
+} from "@/lib/form";
 
 export async function salvarCategoria(fd: FormData): Promise<Resultado> {
   try {
@@ -26,7 +33,7 @@ export async function salvarCategoria(fd: FormData): Promise<Resultado> {
 
     if (error) {
       if (error.code === "23505") return { ok: false, erro: "Já existe uma categoria com esse nome." };
-      return { ok: false, erro: error.message };
+      return erroBanco(error);
     }
 
     revalidatePath("/ativos");
@@ -54,7 +61,7 @@ export async function excluirCategoria(id: string): Promise<Resultado> {
     }
 
     const { error } = await supabase.from("categorias").delete().eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/ativos");
     revalidatePath("/dashboard");

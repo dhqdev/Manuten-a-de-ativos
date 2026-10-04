@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { mensagemErro, texto, textoObrigatorio, type Resultado } from "@/lib/form";
+import {
+  erroBanco,
+  mensagemErro,
+  texto,
+  textoObrigatorio,
+  type Resultado,
+} from "@/lib/form";
 import type { PapelMembro } from "@/lib/types";
 
 export async function adicionarMembro(fd: FormData): Promise<Resultado> {
@@ -18,7 +24,7 @@ export async function adicionarMembro(fd: FormData): Promise<Resultado> {
       p_papel: (texto(fd, "papel") ?? "tecnico") as PapelMembro,
     });
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/configuracoes");
     return { ok: true };
@@ -33,7 +39,7 @@ export async function removerMembro(userId: string): Promise<Resultado> {
     const supabase = await createClient();
 
     const { error } = await supabase.rpc("remover_membro", { p_org: orgId, p_user: userId });
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/configuracoes");
     return { ok: true };

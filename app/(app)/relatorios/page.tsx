@@ -10,7 +10,7 @@ export default async function RelatoriosPage() {
   const supabase = await createClient();
 
   const [{ data: categorias }, { data: ativos }] = await Promise.all([
-    supabase.from("categorias").select("id, nome").eq("org_id", orgId).order("ordem").order("nome"),
+    supabase.from("categorias").select("id, nome, cor").eq("org_id", orgId).order("ordem").order("nome"),
     supabase.from("ativos").select("id, nome, categoria_id").eq("org_id", orgId).order("nome"),
   ]);
 
@@ -18,7 +18,7 @@ export default async function RelatoriosPage() {
     <>
       <Cabecalho
         titulo="Relatórios"
-        descricao="Filtre por período, categoria, ativo e tipo. Gere o PDF ou envie direto pelo WhatsApp."
+        descricao="Filtre por período, uma ou mais categorias, ativo e tipo. Gere o PDF ou envie direto pelo WhatsApp."
       />
       <GeradorRelatorio
         empresa={organizacao.nome}

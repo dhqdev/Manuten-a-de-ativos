@@ -141,7 +141,8 @@ export type DashboardResumo = {
 export type FiltrosRelatorio = {
   de: string;
   ate: string;
-  categoria: string;
+  /** Vazio = todas as categorias. */
+  categorias: string[];
   ativo: string;
   tipo: "todos" | TipoManutencao;
 };

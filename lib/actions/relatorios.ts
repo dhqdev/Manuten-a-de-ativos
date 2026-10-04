@@ -35,7 +35,9 @@ export async function dadosDoRelatorio(f: FiltrosRelatorio): Promise<DadosDoRela
       return { ok: false, erro: "A data inicial não pode ser maior que a data final." };
     }
 
-    const categoria = f.categoria !== "todas" && UUID.test(f.categoria) ? f.categoria : null;
+    const categorias = (Array.isArray(f.categorias) ? f.categorias : [])
+      .filter((c) => UUID.test(c))
+      .slice(0, 100);
     const ativo = f.ativo !== "todos" && UUID.test(f.ativo) ? f.ativo : null;
     const tipo = f.tipo !== "todos" && f.tipo in TIPOS_MANUTENCAO ? f.tipo : null;
 
@@ -54,9 +56,9 @@ export async function dadosDoRelatorio(f: FiltrosRelatorio): Promise<DadosDoRela
       .eq("ativo", true)
       .neq("situacao", "inativo");
 
-    if (categoria) {
-      qm = qm.eq("categoria_id", categoria);
-      qp = qp.eq("categoria_id", categoria);
+    if (categorias.length) {
+      qm = qm.in("categoria_id", categorias);
+      qp = qp.in("categoria_id", categorias);
     }
     if (ativo) {
       qm = qm.eq("ativo_id", ativo);

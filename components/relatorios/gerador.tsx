@@ -10,6 +10,7 @@ import {
   Share2,
   TriangleAlert,
 } from "lucide-react";
+import { SeletorCategorias } from "@/components/relatorios/seletor-categorias";
 import { Badge, Botao, Campo, Secao, cn } from "@/components/ui";
 import { dadosDoRelatorio } from "@/lib/actions/relatorios";
 import {
@@ -31,6 +32,7 @@ import {
 import type { ManutencaoCompleta, PlanoStatus, TipoManutencao } from "@/lib/types";
 
 type Opcao = { id: string; nome: string };
+type CategoriaOpcao = Opcao & { cor: string };
 type AtivoOpcao = Opcao & { categoria_id: string };
 
 const ATALHOS = [
@@ -46,12 +48,13 @@ export function GeradorRelatorio({
   ativos,
 }: {
   empresa: string;
-  categorias: Opcao[];
+  categorias: CategoriaOpcao[];
   ativos: AtivoOpcao[];
 }) {
   const [de, setDe] = useState(primeiroDiaDoMes());
   const [ate, setAte] = useState(ultimoDiaDoMes());
-  const [categoria, setCategoria] = useState("todas");
+  // Vazio = todas as categorias.
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [ativo, setAtivo] = useState("todos");
   const [tipo, setTipo] = useState<"todos" | TipoManutencao>("todos");
 
@@ -62,8 +65,11 @@ export function GeradorRelatorio({
   const [compartilhando, setCompartilhando] = useState(false);
 
   const ativosFiltrados = useMemo(
-    () => (categoria === "todas" ? ativos : ativos.filter((a) => a.categoria_id === categoria)),
-    [ativos, categoria],
+    () =>
+      selecionadas.length === 0
+        ? ativos
+        : ativos.filter((a) => selecionadas.includes(a.categoria_id)),
+    [ativos, selecionadas],
   );
 
   // Se a categoria muda e o ativo selecionado não pertence mais a ela, limpa.
@@ -75,7 +81,7 @@ export function GeradorRelatorio({
     setCarregando(true);
     setErro(null);
 
-    const r = await dadosDoRelatorio({ de, ate, categoria, ativo, tipo });
+    const r = await dadosDoRelatorio({ de, ate, categorias: selecionadas, ativo, tipo });
 
     if (!r.ok) {
       setErro(r.erro);
@@ -86,7 +92,7 @@ export function GeradorRelatorio({
       setProximas(r.proximas);
     }
     setCarregando(false);
-  }, [de, ate, categoria, ativo, tipo]);
+  }, [de, ate, selecionadas, ativo, tipo]);
 
   useEffect(() => {
     buscar();
@@ -96,13 +102,15 @@ export function GeradorRelatorio({
 
   const dados: DadosRelatorio = useMemo(() => {
     const filtros: string[] = [];
-    if (categoria !== "todas")
-      filtros.push(`Categoria: ${categorias.find((c) => c.id === categoria)?.nome ?? ""}`);
+    if (selecionadas.length) {
+      const nomes = categorias.filter((c) => selecionadas.includes(c.id)).map((c) => c.nome);
+      filtros.push(`${nomes.length > 1 ? "Categorias" : "Categoria"}: ${nomes.join(", ")}`);
+    }
     if (ativo !== "todos") filtros.push(`Ativo: ${ativos.find((a) => a.id === ativo)?.nome ?? ""}`);
     if (tipo !== "todos") filtros.push(`Tipo: ${TIPOS_MANUTENCAO[tipo]}`);
 
     return { empresa, periodoDe: de, periodoAte: ate, filtros, manutencoes, proximas };
-  }, [empresa, de, ate, categoria, ativo, tipo, categorias, ativos, manutencoes, proximas]);
+  }, [empresa, de, ate, selecionadas, ativo, tipo, categorias, ativos, manutencoes, proximas]);
 
   function aplicarAtalho(meses: number) {
     if (meses === 0) {
@@ -175,15 +183,12 @@ export function GeradorRelatorio({
           <Campo label="Data final">
             <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className="campo" />
           </Campo>
-          <Campo label="Categoria">
-            <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="campo">
-              <option value="todas">Todas as categorias</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
-            </select>
+          <Campo label="Categorias">
+            <SeletorCategorias
+              categorias={categorias}
+              selecionadas={selecionadas}
+              aoMudar={setSelecionadas}
+            />
           </Campo>
           <Campo label="Ativo específico">
             <select value={ativo} onChange={(e) => setAtivo(e.target.value)} className="campo">
@@ -311,13 +316,14 @@ export function GeradorRelatorio({
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[46rem] text-sm">
+                    <table className="w-full min-w-[52rem] text-sm">
                       <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                         <tr>
                           <th className="px-4 py-2.5 font-semibold">Data</th>
                           <th className="px-4 py-2.5 font-semibold">Ativo</th>
                           <th className="px-4 py-2.5 font-semibold">Tipo</th>
                           <th className="px-4 py-2.5 font-semibold">Serviço</th>
+                          <th className="px-4 py-2.5 text-right font-semibold">Horím. / KM</th>
                           <th className="px-4 py-2.5 font-semibold">Responsável</th>
                           <th className="px-4 py-2.5 text-right font-semibold">Valor</th>
                         </tr>
@@ -350,6 +356,11 @@ export function GeradorRelatorio({
                                 </span>
                               )}
                             </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-600">
+                              {m.horimetro !== null && m.horimetro !== undefined
+                                ? numero(m.horimetro)
+                                : "—"}
+                            </td>
                             <td className="px-4 py-3 text-slate-600">
                               {[m.responsavel, m.empresa].filter(Boolean).join(" · ") || "—"}
                             </td>
@@ -361,7 +372,7 @@ export function GeradorRelatorio({
                       </tbody>
                       <tfoot className="bg-slate-50">
                         <tr>
-                          <td colSpan={5} className="px-4 py-3 text-right font-semibold text-slate-700">
+                          <td colSpan={6} className="px-4 py-3 text-right font-semibold text-slate-700">
                             Total
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-slate-900">
