@@ -15,7 +15,9 @@ import { Badge, Botao, Campo, Secao, cn } from "@/components/ui";
 import { dadosDoRelatorio } from "@/lib/actions/relatorios";
 import {
   SITUACAO_PLANO,
+  SULCO_ALERTA_MM,
   TIPOS_MANUTENCAO,
+  TIPOS_MOV_PNEU,
   dataBR,
   moeda,
   numero,
@@ -24,12 +26,14 @@ import {
 } from "@/lib/format";
 import {
   calcularTotais,
+  calcularTotaisPneus,
   gerarPDF,
+  temPneus,
   nomeArquivo,
   resumoTexto,
   type DadosRelatorio,
 } from "@/lib/relatorio-pdf";
-import type { ManutencaoCompleta, PlanoStatus, TipoManutencao } from "@/lib/types";
+import type { ManutencaoCompleta, PlanoStatus, PneusDoRelatorio, TipoManutencao } from "@/lib/types";
 
 type Opcao = { id: string; nome: string };
 type CategoriaOpcao = Opcao & { cor: string };
@@ -60,6 +64,7 @@ export function GeradorRelatorio({
 
   const [manutencoes, setManutencoes] = useState<ManutencaoCompleta[]>([]);
   const [proximas, setProximas] = useState<PlanoStatus[]>([]);
+  const [pneus, setPneus] = useState<PneusDoRelatorio | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [compartilhando, setCompartilhando] = useState(false);
@@ -87,9 +92,11 @@ export function GeradorRelatorio({
       setErro(r.erro);
       setManutencoes([]);
       setProximas([]);
+      setPneus(null);
     } else {
       setManutencoes(r.manutencoes);
       setProximas(r.proximas);
+      setPneus(r.pneus ?? null);
     }
     setCarregando(false);
   }, [de, ate, selecionadas, ativo, tipo]);
@@ -109,8 +116,8 @@ export function GeradorRelatorio({
     if (ativo !== "todos") filtros.push(`Ativo: ${ativos.find((a) => a.id === ativo)?.nome ?? ""}`);
     if (tipo !== "todos") filtros.push(`Tipo: ${TIPOS_MANUTENCAO[tipo]}`);
 
-    return { empresa, periodoDe: de, periodoAte: ate, filtros, manutencoes, proximas };
-  }, [empresa, de, ate, selecionadas, ativo, tipo, categorias, ativos, manutencoes, proximas]);
+    return { empresa, periodoDe: de, periodoAte: ate, filtros, manutencoes, proximas, pneus };
+  }, [empresa, de, ate, selecionadas, ativo, tipo, categorias, ativos, manutencoes, proximas, pneus]);
 
   function aplicarAtalho(meses: number) {
     if (meses === 0) {
@@ -165,7 +172,8 @@ export function GeradorRelatorio({
     }
   }
 
-  const semDados = !carregando && manutencoes.length === 0 && proximas.length === 0;
+  const semDados =
+    !carregando && manutencoes.length === 0 && proximas.length === 0 && !temPneus(pneus);
 
   return (
     <div className="space-y-4">
@@ -433,6 +441,8 @@ export function GeradorRelatorio({
                   </ul>
                 )}
               </Secao>
+
+              {temPneus(pneus) && <SecaoPneus pneus={pneus} filtrado={ativo !== "todos" || selecionadas.length > 0} />}
             </>
           )}
         </>
@@ -495,5 +505,92 @@ function TabelaResumo({
         </li>
       ))}
     </ul>
+  );
+}
+
+function SecaoPneus({ pneus, filtrado }: { pneus: PneusDoRelatorio; filtrado: boolean }) {
+  const t = calcularTotaisPneus(pneus.movimentacoes);
+
+  return (
+    <Secao titulo={`Pneus (${pneus.movimentacoes.length} movimentações no período)`}>
+      <div className="grid grid-cols-2 gap-4 border-b border-slate-100 px-4 py-4 sm:grid-cols-4 sm:px-5">
+        <MiniTotal rotulo="Gasto no período" valor={moeda(t.total)} detalhe={`Compras ${moeda(t.compras)} · Recapagens ${moeda(t.recapagens)}`} />
+        <MiniTotal rotulo={filtrado ? "Montados nos filtrados" : "Em uso"} valor={numero(pneus.emUso)} />
+        {!filtrado && <MiniTotal rotulo="Em estoque" valor={numero(pneus.emEstoque)} detalhe={moeda(pneus.valorEstoque)} />}
+        {!filtrado && <MiniTotal rotulo="Na recapagem" valor={numero(pneus.recapagem)} />}
+      </div>
+
+      {pneus.sulcoBaixo.length > 0 && (
+        <div className="border-b border-slate-100 bg-red-50/60 px-4 py-3 sm:px-5">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-red-700">
+            <TriangleAlert className="h-4 w-4" />
+            {pneus.sulcoBaixo.length} pneu(s) com sulco até {SULCO_ALERTA_MM} mm
+          </p>
+          <p className="mt-1 text-xs text-red-700/80">
+            {pneus.sulcoBaixo
+              .slice(0, 8)
+              .map((p) => `${p.numero_fogo} (${numero(p.sulco_atual_mm, 1)} mm${p.ativo_nome ? ` · ${p.ativo_nome}` : ""})`)
+              .join(" · ")}
+            {pneus.sulcoBaixo.length > 8 ? " ..." : ""}
+          </p>
+        </div>
+      )}
+
+      {pneus.movimentacoes.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-slate-500">Nenhuma movimentação de pneu no período.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[46rem] text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-2.5 font-semibold">Data</th>
+                <th className="px-4 py-2.5 font-semibold">Pneu</th>
+                <th className="px-4 py-2.5 font-semibold">Movimentação</th>
+                <th className="px-4 py-2.5 font-semibold">Veículo / posição</th>
+                <th className="px-4 py-2.5 text-right font-semibold">KM</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Sulco</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Valor</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {pneus.movimentacoes.map((m) => (
+                <tr key={m.id} className="align-top">
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{dataBR(m.data)}</td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono font-medium text-slate-900">{m.numero_fogo}</span>
+                    <span className="block text-xs text-slate-500">
+                      {m.marca} · {m.medida}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">{TIPOS_MOV_PNEU[m.tipo]}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {[m.ativo_nome, m.posicao].filter(Boolean).join(" · ") || "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-600">
+                    {m.horimetro !== null ? numero(m.horimetro) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-600">
+                    {m.sulco_mm !== null ? `${numero(m.sulco_mm, 1)} mm` : "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900">
+                    {m.valor ? moeda(m.valor) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Secao>
+  );
+}
+
+function MiniTotal({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{rotulo}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">{valor}</p>
+      {detalhe && <p className="truncate text-xs text-slate-500">{detalhe}</p>}
+    </div>
   );
 }

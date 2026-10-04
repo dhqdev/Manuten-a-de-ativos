@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { TIPOS_MANUTENCAO, dataBR, moeda, numero } from "@/lib/format";
-import type { ManutencaoCompleta, PlanoStatus } from "@/lib/types";
+import { STATUS_PNEU, SULCO_ALERTA_MM, TIPOS_MANUTENCAO, TIPOS_MOV_PNEU, dataBR, moeda, numero } from "@/lib/format";
+import type { ManutencaoCompleta, MovPneuRelatorio, PlanoStatus, PneusDoRelatorio } from "@/lib/types";
 
 export type DadosRelatorio = {
   empresa: string;
@@ -10,7 +10,41 @@ export type DadosRelatorio = {
   filtros: string[];
   manutencoes: ManutencaoCompleta[];
   proximas: PlanoStatus[];
+  pneus?: PneusDoRelatorio | null;
 };
+
+export type TotaisPneus = {
+  compras: number;
+  recapagens: number;
+  total: number;
+  porTipo: { tipo: MovPneuRelatorio["tipo"]; quantidade: number }[];
+};
+
+/** Gasto com pneus no período: compras (entradas) e recapagens. */
+export function calcularTotaisPneus(movs: MovPneuRelatorio[]): TotaisPneus {
+  let compras = 0;
+  let recapagens = 0;
+  const contagem = new Map<MovPneuRelatorio["tipo"], number>();
+
+  for (const m of movs) {
+    const valor = Number(m.valor ?? 0);
+    if (m.tipo === "entrada") compras += valor;
+    else if (m.tipo === "recapagem" || m.tipo === "retorno") recapagens += valor;
+    contagem.set(m.tipo, (contagem.get(m.tipo) ?? 0) + 1);
+  }
+
+  return {
+    compras,
+    recapagens,
+    total: compras + recapagens,
+    porTipo: [...contagem.entries()].map(([tipo, quantidade]) => ({ tipo, quantidade })),
+  };
+}
+
+/** Pneus têm algo para mostrar no relatório? */
+export function temPneus(p: PneusDoRelatorio | null | undefined): p is PneusDoRelatorio {
+  return Boolean(p && (p.movimentacoes.length || p.emEstoque || p.emUso || p.recapagem || p.sulcoBaixo.length));
+}
 
 export type Totais = {
   custoTotal: number;
@@ -267,6 +301,86 @@ export function gerarPDF(dados: DadosRelatorio): jsPDF {
     });
   }
 
+  // ---- Pneus ---------------------------------------------------------------
+  if (temPneus(dados.pneus)) {
+    const pneus = dados.pneus;
+    const tp = calcularTotaisPneus(pneus.movimentacoes);
+    let yp = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 20;
+    yp += 10;
+    if (yp > 230) {
+      doc.addPage();
+      yp = 20;
+    }
+    yp = titulo("Pneus", yp);
+
+    autoTable(doc, {
+      ...estiloTabela,
+      startY: yp,
+      head: [["Gasto no período", "Compras", "Recapagens", "Em estoque", "Em uso", "Na recapagem", "Valor em estoque"]],
+      body: [
+        [
+          moeda(tp.total),
+          moeda(tp.compras),
+          moeda(tp.recapagens),
+          numero(pneus.emEstoque),
+          numero(pneus.emUso),
+          numero(pneus.recapagem),
+          moeda(pneus.valorEstoque),
+        ],
+      ],
+      styles: { ...estiloTabela.styles, halign: "center" },
+    });
+    yp = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+
+    if (pneus.movimentacoes.length) {
+      autoTable(doc, {
+        ...estiloTabela,
+        startY: yp,
+        head: [["Data", "Pneu", "Movimentação", "Veículo / posição", "KM", "Sulco", "Valor"]],
+        body: pneus.movimentacoes.map((m) => [
+          dataBR(m.data),
+          `${m.numero_fogo}\n${m.marca} ${m.medida}`.trim(),
+          TIPOS_MOV_PNEU[m.tipo],
+          [m.ativo_nome, m.posicao].filter(Boolean).join("\n") || "—",
+          m.horimetro !== null ? numero(m.horimetro) : "—",
+          m.sulco_mm !== null ? `${numero(m.sulco_mm, 1)} mm` : "—",
+          m.valor ? moeda(m.valor) : "—",
+        ]),
+        columnStyles: {
+          0: { cellWidth: 18 },
+          4: { halign: "right", cellWidth: 18 },
+          5: { halign: "right", cellWidth: 16 },
+          6: { halign: "right", cellWidth: 22 },
+        },
+      });
+      yp = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    }
+
+    if (pneus.sulcoBaixo.length) {
+      if (yp > 250) {
+        doc.addPage();
+        yp = 20;
+      }
+      doc.setTextColor(220, 38, 38);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(`Pneus com sulco até ${SULCO_ALERTA_MM} mm`, margem, yp);
+      autoTable(doc, {
+        ...estiloTabela,
+        startY: yp + 2,
+        head: [["Pneu", "Medida", "Situação", "Veículo / posição", "Sulco"]],
+        body: pneus.sulcoBaixo.map((p) => [
+          `${p.numero_fogo} · ${p.marca}`,
+          p.medida,
+          STATUS_PNEU[p.status].label,
+          [p.ativo_nome, p.posicao].filter(Boolean).join(" · ") || "—",
+          `${numero(p.sulco_atual_mm, 1)} mm`,
+        ]),
+        columnStyles: { 4: { halign: "right", cellWidth: 18, textColor: [220, 38, 38] } },
+      });
+    }
+  }
+
   // ---- Rodapé com paginação ------------------------------------------------
   const paginas = doc.getNumberOfPages();
   for (let i = 1; i <= paginas; i++) {
@@ -322,6 +436,18 @@ export function resumoTexto(dados: DadosRelatorio): string {
           ? `${numero(p.proximo_horimetro)} h/km`
           : dataBR(p.proxima_data);
       linhas.push(`• ${p.ativo_nome} — ${p.tipo}: ${quando}`);
+    }
+  }
+
+  if (temPneus(dados.pneus)) {
+    const tp = calcularTotaisPneus(dados.pneus.movimentacoes);
+    linhas.push("", "*Pneus*");
+    if (tp.total) linhas.push(`• Gasto no período: ${moeda(tp.total)}`);
+    linhas.push(
+      `• Em estoque: ${dados.pneus.emEstoque} · em uso: ${dados.pneus.emUso} · na recapagem: ${dados.pneus.recapagem}`,
+    );
+    if (dados.pneus.sulcoBaixo.length) {
+      linhas.push(`⚠️ ${dados.pneus.sulcoBaixo.length} com sulco baixo (até ${SULCO_ALERTA_MM} mm)`);
     }
   }
 

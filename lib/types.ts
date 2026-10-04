@@ -148,7 +148,13 @@ export type FiltrosRelatorio = {
 };
 
 export type DadosDoRelatorio =
-  | { ok: true; manutencoes: ManutencaoCompleta[]; proximas: PlanoStatus[] }
+  | {
+      ok: true;
+      manutencoes: ManutencaoCompleta[];
+      proximas: PlanoStatus[];
+      /** null quando o banco ainda não tem as tabelas de pneus (migração v2). */
+      pneus: PneusDoRelatorio | null;
+    }
   | { ok: false; erro: string };
 
 export type StatusPneu = "estoque" | "em_uso" | "recapagem" | "descartado";
@@ -201,4 +207,28 @@ export type MovimentacaoPneu = {
   valor: number | null;
   observacoes: string | null;
   created_at: string;
+};
+
+/** Movimentação de pneu achatada para o relatório. */
+export type MovPneuRelatorio = MovimentacaoPneu & {
+  numero_fogo: string;
+  marca: string;
+  medida: string;
+  ativo_nome: string | null;
+};
+
+export type PneuResumo = Pick<
+  Pneu,
+  "id" | "numero_fogo" | "marca" | "medida" | "status" | "posicao" | "sulco_atual_mm"
+> & { ativo_nome: string | null };
+
+export type PneusDoRelatorio = {
+  /** Movimentações dentro do período (e do ativo/categoria filtrados). */
+  movimentacoes: MovPneuRelatorio[];
+  /** Situação atual (não depende do período). */
+  emEstoque: number;
+  emUso: number;
+  recapagem: number;
+  valorEstoque: number;
+  sulcoBaixo: PneuResumo[];
 };
