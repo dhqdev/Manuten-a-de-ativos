@@ -92,6 +92,33 @@ cross-origin-opener-policy: same-origin
 
 ---
 
+### 8. Papéis só existiam no nome (grave)
+
+Técnico e leitor conseguiam criar, editar e excluir ativos, apagar histórico,
+mudar os dados da empresa e desconectar o WhatsApp — as policies de RLS só
+checavam se a pessoa era membro. Corrigido em `supabase/migracao-v2.sql`:
+
+| | Proprietário / Gestor | Técnico | Leitor |
+|---|---|---|---|
+| Ver tudo | ✓ | ✓ | ✓ |
+| Registrar manutenção e anexos, movimentar pneus | ✓ | ✓ | — |
+| Categorias, ativos, periódicas, cadastro de pneus | ✓ | — | — |
+| Excluir manutenções / limpar histórico | ✓ | — | — |
+| Dados da empresa, WhatsApp, equipe | ✓ | — | — |
+
+A tela esconde os botões (`lib/permissoes.ts`), mas quem barra é o banco.
+
+### 9. Convite de usuário não pode vir do formulário
+
+Usuários criados pelo gestor entram direto na empresa pelo trigger
+`handle_new_user`, que lê o convite de `raw_app_meta_data` — campo que só a
+chave de serviço define. Ler de `raw_user_meta_data` (preenchido pelo
+formulário público de cadastro) deixaria qualquer pessoa se colocar dentro de
+outra empresa. A troca de senha pelo gestor só vale para quem participa
+apenas daquela empresa, para um gestor não tomar a conta do dono de outra.
+
+---
+
 ## Content Security Policy
 
 Cada requisição gera um **nonce** novo. Só scripts com aquele nonce rodam, e

@@ -18,8 +18,8 @@ O script cria:
 
 | O quê | Detalhe |
 |---|---|
-| Tabelas | `organizacoes`, `profiles`, `org_membros`, `categorias`, `ativos`, `planos_manutencao`, `manutencoes`, `manutencao_anexos` |
-| Segurança | RLS em todas as tabelas — cada empresa só enxerga os próprios dados |
+| Tabelas | `organizacoes`, `profiles`, `org_membros`, `categorias`, `ativos`, `planos_manutencao`, `manutencoes`, `manutencao_anexos`, `whatsapp_conexoes`, `whatsapp_envios`, `pneus`, `pneu_movimentacoes` |
+| Segurança | RLS em todas as tabelas — cada empresa só enxerga os próprios dados, e cada papel só altera o que pode |
 | Cadastro automático | Ao criar conta, o usuário ganha empresa, perfil e as 6 categorias padrão |
 | Storage | Bucket privado `manutencoes` para fotos e anexos |
 | Views | `vw_planos_status` (em dia / vence em breve / atrasada) e `vw_manutencoes_completo` |
@@ -76,8 +76,9 @@ Para publicar na Vercel, veja [DEPLOY.md](DEPLOY.md).
 | Ativo (detalhe) | Abas de **Histórico** (com fotos/anexos, peças, custo, garantia), **Manutenções periódicas** e **Dados do ativo** |
 | **Manutenções** | Todas as preventivas com alertas de atraso/vencimento + histórico geral |
 | **Calendário** | Mês a mês, com realizadas (verde), programadas (azul) e atrasadas (vermelho). Filtra por categoria e por situação |
-| **Relatórios** | Filtra por período, categoria, ativo e tipo. Gera PDF e compartilha no WhatsApp |
-| **Configurações** | Dados da empresa, perfil, senha, **WhatsApp**, equipe e empresa ativa |
+| **Estoque** | Pneus com número de fogo, medida, DOT, sulco, valor e situação (estoque, em uso, recapagem, descarte). Movimentações com veículo, posição e KM, e histórico de cada pneu |
+| **Relatórios** | Filtra por período, uma ou mais categorias, ativo e tipo. Histórico com horímetro/KM. Gera PDF e compartilha no WhatsApp |
+| **Configurações** | Dados da empresa, perfil, senha, **WhatsApp** (com horário do envio), equipe e acessos, empresa ativa |
 
 ### Aplicativo no celular (PWA)
 
@@ -127,14 +128,29 @@ próxima data (ou o próximo horímetro) e atualiza o horímetro do ativo.
 
 ---
 
-## 4. Equipe
+## 4. Equipe e acessos
 
-Em **Configurações → Equipe**, o proprietário ou gestor adiciona pessoas pelo
-e-mail. A pessoa precisa ter criado a conta antes. Papéis: **gestor**,
-**técnico** e **leitor**.
+Em **Configurações → Equipe e acessos**, o proprietário ou gestor cria o login
+da pessoa (nome, e-mail, senha opcional e papel). No final o sistema mostra
+e-mail e senha para copiar ou mandar no WhatsApp. A pessoa já entra na empresa
+certa. Se o e-mail já tinha conta, ela só é adicionada à equipe.
 
-Quem participa de mais de uma empresa escolhe qual está ativa em
-**Configurações → Empresa ativa**.
+Na mesma tela dá para trocar o papel, gerar uma senha nova e remover o acesso.
+
+| Papel | Pode |
+|---|---|
+| **Proprietário / Gestor** | Tudo, inclusive equipe, WhatsApp e dados da empresa |
+| **Técnico** | Registrar manutenções e anexos, movimentar pneus |
+| **Leitor** | Somente consultar |
+
+As regras valem no banco (RLS), não só na tela. Quem participa de mais de uma
+empresa escolhe qual está ativa em **Configurações → Empresa ativa**.
+
+### Limpar histórico
+
+Em **Manutenções**, o gestor pode apagar o histórico de um período (tudo ou só
+um tipo, como as preventivas, e opcionalmente de um ativo). O sistema mostra
+quantos registros vão sair e pede para digitar APAGAR.
 
 ---
 

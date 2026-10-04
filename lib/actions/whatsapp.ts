@@ -20,6 +20,18 @@ import {
   renovarQr,
 } from "@/lib/evolution";
 import { montarResumo } from "@/lib/whatsapp-mensagem";
+import { SEM_PERMISSAO, podeGerenciar } from "@/lib/permissoes";
+
+/**
+ * Conectar, desconectar e mexer nas preferências é coisa de proprietário ou
+ * gestor. A checagem vem antes de qualquer chamada à Evolution: o RLS só
+ * protege o banco, não o servidor do WhatsApp.
+ */
+async function exigirGestor() {
+  const ctx = await getContexto();
+  if (!podeGerenciar(ctx.papel)) throw new Error(SEM_PERMISSAO);
+  return ctx;
+}
 
 export type StatusWhatsapp = {
   status: "desconectado" | "conectando" | "conectado";
@@ -32,7 +44,7 @@ export type StatusWhatsapp = {
 /** Cria/reabre a instância da empresa e devolve o QR code para escanear. */
 export async function iniciarConexao(): Promise<StatusWhatsapp> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
     const instancia = nomeInstancia(orgId);
 
@@ -59,7 +71,7 @@ export async function iniciarConexao(): Promise<StatusWhatsapp> {
 /** Consultado a cada poucos segundos enquanto o QR está na tela. */
 export async function consultarStatus(): Promise<StatusWhatsapp> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
@@ -116,7 +128,7 @@ export async function consultarStatus(): Promise<StatusWhatsapp> {
 
 export async function encerrarConexao(): Promise<Resultado> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
@@ -138,7 +150,7 @@ export async function encerrarConexao(): Promise<Resultado> {
 
 export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultado> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { error } = await supabase
@@ -163,7 +175,7 @@ export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultad
 /** Manda agora o mesmo resumo que a rotina diária enviaria. */
 export async function enviarResumoTeste(): Promise<Resultado> {
   try {
-    const { orgId, organizacao } = await getContexto();
+    const { orgId, organizacao } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
