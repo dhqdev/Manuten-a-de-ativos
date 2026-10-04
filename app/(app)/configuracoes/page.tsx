@@ -4,6 +4,7 @@ import { PainelEquipe } from "@/components/configuracoes/equipe";
 import { FormularioSalvar } from "@/components/configuracoes/formulario-salvar";
 import { PainelWhatsapp, type ConexaoAtual } from "@/components/configuracoes/whatsapp";
 import { ZonaPerigo } from "@/components/configuracoes/zona-perigo";
+import { SeletorTema } from "@/components/tema/alternar-tema";
 import { Cabecalho, Campo, Secao } from "@/components/ui";
 import { alterarSenha, salvarEmpresa, salvarPerfil, trocarEmpresa } from "@/lib/actions/configuracoes";
 import { dataBR } from "@/lib/format";
@@ -197,6 +198,20 @@ export default async function ConfiguracoesPage() {
         </Secao>
       </div>
 
+      {/* Aparência: vale só para este aparelho (fica num cookie). */}
+      <div className="mt-4">
+        <Secao titulo="Aparência">
+          <div className="px-4 py-4 sm:px-5">
+            <p className="mb-3 text-sm text-slate-500">
+              Escolha o tema deste aparelho. &quot;Automático&quot; segue o modo do celular ou computador.
+            </p>
+            <div className="max-w-md">
+              <SeletorTema />
+            </div>
+          </div>
+        </Secao>
+      </div>
+
       {/* WhatsApp */}
       <div className="mt-4">
         {gestor ? (
@@ -230,7 +245,7 @@ export default async function ConfiguracoesPage() {
         />
       </div>
 
-      <div className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+      <div className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-superficie p-4 text-sm text-slate-600">
         <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
         <p>
           Todos os dados são isolados por empresa no banco. Cada pessoa só enxerga os ativos e

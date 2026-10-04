@@ -81,7 +81,7 @@ export function SeletorCategorias({
         <div
           role="listbox"
           aria-multiselectable="true"
-          className="pop-in absolute left-0 right-0 z-30 mt-1.5 max-h-72 min-w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-elevada"
+          className="pop-in absolute left-0 right-0 z-30 mt-1.5 max-h-72 min-w-56 overflow-y-auto rounded-xl border border-slate-200 bg-superficie p-1.5 shadow-elevada"
         >
           <Opcao marcado={selecionadas.length === 0} aoClicar={() => aoMudar([])}>
             <span className="font-medium">Todas as categorias</span>
@@ -119,7 +119,7 @@ function Opcao({
       <span
         className={cn(
           "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
-          marcado ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white",
+          marcado ? "border-slate-900 bg-slate-900 text-slate-50" : "border-slate-300 bg-superficie",
         )}
       >
         {marcado && <Check className="h-3 w-3" strokeWidth={3} />}

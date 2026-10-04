@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Assinatura, Logo } from "@/components/marca";
 import { cn } from "@/components/ui";
+import { AlternarTema } from "@/components/tema/alternar-tema";
 import { iniciais } from "@/lib/format";
 
 type Item = { href: string; rotulo: string; Icone: LucideIcon };
@@ -73,7 +74,7 @@ export function Navegacao({
   return (
     <div className="min-h-dvh lg:flex">
       {/* ---------------- Sidebar (desktop) ---------------- */}
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-900 lg:flex">
+      <aside className="tema-original no-print fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-900 lg:flex">
         <Link href="/dashboard" className="flex items-center gap-3 px-5 py-5">
           <Logo tom="claro" />
           <Assinatura empresa={nomeEmpresa} tom="claro" />
@@ -121,6 +122,7 @@ export function Navegacao({
               <p className="truncate text-sm font-medium leading-tight text-white">{nomeUsuario}</p>
               <p className="truncate text-xs leading-tight text-slate-400">{emailUsuario}</p>
             </div>
+            <AlternarTema className="text-slate-400 hover:bg-white/10 hover:text-white" />
             <Link
               href="/auth/sair"
               prefetch={false}
@@ -135,8 +137,8 @@ export function Navegacao({
 
       <div className="flex min-w-0 flex-1 flex-col lg:ml-64">
         {/* ---------------- Topo (celular) ---------------- */}
-        <header className="no-print area-segura-superior sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur lg:hidden">
-          <div className="flex items-center gap-3 px-4 py-2.5">
+        <header className="no-print area-segura-superior sticky top-0 z-20 border-b border-slate-200 bg-superficie/95 backdrop-blur lg:hidden">
+          <div className="flex items-center gap-2.5 px-4 py-2">
             <Logo tamanho="sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold leading-tight text-slate-900">
@@ -144,6 +146,7 @@ export function Navegacao({
               </p>
               <p className="truncate text-[11px] leading-tight text-slate-500">{nomeUsuario}</p>
             </div>
+            <AlternarTema className="text-slate-500 active:bg-slate-100" />
             <Link
               href="/manutencoes?filtro=alertas"
               className="relative rounded-lg p-2 text-slate-500 transition-colors active:bg-slate-100"
@@ -151,7 +154,7 @@ export function Navegacao({
             >
               <Bell className="h-5 w-5" />
               {alertas > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-slate-950">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-black/80">
                   {alertas > 9 ? "9+" : alertas}
                 </span>
               )}
@@ -159,7 +162,7 @@ export function Navegacao({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
+        <main className="min-w-0 flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-8 lg:pb-8">
           <div key={pathname} className="entrada-pagina mx-auto w-full max-w-7xl">
             {children}
           </div>
@@ -170,7 +173,7 @@ export function Navegacao({
       {menuAberto && (
         <div className="no-print fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div
-            className="veu absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+            className="veu absolute inset-0 bg-black/50 backdrop-blur-[2px]"
             onClick={() => setMenuAberto(false)}
             aria-hidden
           />
@@ -179,7 +182,7 @@ export function Navegacao({
             role="dialog"
             aria-modal="true"
             aria-label="Menu"
-            className="folha area-segura-inferior relative rounded-t-2xl bg-white pb-2 shadow-xl"
+            className="folha area-segura-inferior relative rounded-t-2xl bg-superficie pb-2 shadow-xl"
           >
             <div className="flex justify-center pt-2.5" aria-hidden>
               <span className="h-1 w-9 rounded-full bg-slate-300" />
@@ -204,9 +207,9 @@ export function Navegacao({
                   key={href}
                   href={href}
                   className={cn(
-                    "pressionavel flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border text-center",
+                    "pressionavel flex h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border text-center",
                     ativo(href)
-                      ? "border-slate-900 bg-slate-900 text-white"
+                      ? "border-slate-900 bg-slate-900 text-slate-50"
                       : "border-slate-200 bg-slate-50 text-slate-700 active:bg-slate-100",
                   )}
                 >
@@ -218,7 +221,7 @@ export function Navegacao({
               <Link
                 href="/auth/sair"
                 prefetch={false}
-                className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 text-center text-red-700 active:bg-red-100"
+                className="pressionavel flex h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 text-center text-red-700 active:bg-red-100"
               >
                 <LogOut className="h-6 w-6" />
                 <span className="px-1 text-[12px] font-medium leading-tight">Sair</span>
@@ -230,7 +233,7 @@ export function Navegacao({
 
       {/* ---------------- Barra inferior (celular) ---------------- */}
       <nav
-        className="no-print area-segura-inferior fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden"
+        className="no-print area-segura-inferior fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-superficie/95 backdrop-blur lg:hidden"
         aria-label="Navegação principal"
       >
         <div className="grid grid-cols-5">
@@ -239,17 +242,19 @@ export function Navegacao({
               key={href}
               href={href}
               className={cn(
-                "pressionavel relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                "pressionavel relative flex flex-col items-center gap-0.5 pb-1.5 pt-2 text-[10.5px] font-medium",
                 ativo(href) ? "text-slate-900" : "text-slate-500 active:text-slate-900",
               )}
             >
-              {ativo(href) && (
-                <span className="pop-in absolute top-0 h-0.5 w-8 rounded-b-full bg-slate-900" />
-              )}
-              <span className="relative">
-                <Icone className={cn("h-[22px] w-[22px]", ativo(href) && "stroke-[2.3]")} />
+              <span
+                className={cn(
+                  "relative flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                  ativo(href) && "bg-slate-100",
+                )}
+              >
+                <Icone className={cn("h-5 w-5", ativo(href) && "stroke-[2.3]")} />
                 {href === "/manutencoes" && alertas > 0 && (
-                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-slate-950">
+                  <span className="absolute -top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-black/80">
                     {alertas > 9 ? "9+" : alertas}
                   </span>
                 )}
@@ -263,12 +268,18 @@ export function Navegacao({
             onClick={() => setMenuAberto(true)}
             aria-expanded={menuAberto}
             className={cn(
-              "relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+              "pressionavel relative flex flex-col items-center gap-0.5 pb-1.5 pt-2 text-[10.5px] font-medium",
               algumNoMenu || menuAberto ? "text-slate-900" : "text-slate-500 active:text-slate-900",
             )}
           >
-            {algumNoMenu && <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-slate-900" />}
-            <LayoutGrid className="h-[22px] w-[22px]" />
+            <span
+              className={cn(
+                "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                (algumNoMenu || menuAberto) && "bg-slate-100",
+              )}
+            >
+              <LayoutGrid className={cn("h-5 w-5", algumNoMenu && "stroke-[2.3]")} />
+            </span>
             Mais
           </button>
         </div>

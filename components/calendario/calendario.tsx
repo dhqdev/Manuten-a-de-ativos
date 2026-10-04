@@ -168,7 +168,7 @@ export function Calendario({
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                   tipos[t]
-                    ? "border-slate-300 bg-white text-slate-700"
+                    ? "border-slate-300 bg-superficie text-slate-700"
                     : "border-slate-200 bg-slate-50 text-slate-400",
                 )}
               >
@@ -316,12 +316,12 @@ export function Calendario({
 
 function ResumoCartao({ rotulo, valor, cor }: { rotulo: string; valor: string; cor: string }) {
   return (
-    <div className="card p-4">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+    <div className="card min-w-0 p-3.5 sm:p-4">
+      <p className="flex items-center gap-1.5 truncate text-xs font-medium text-slate-500">
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cor }} aria-hidden />
         {rotulo}
       </p>
-      <p className="mt-1.5 text-xl font-semibold text-slate-900">{valor}</p>
+      <p className="mt-1 truncate text-lg font-semibold text-slate-900 sm:mt-1.5 sm:text-xl">{valor}</p>
     </div>
   );
 }

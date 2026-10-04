@@ -256,7 +256,7 @@ export function ListaManutencoes({
                                   href={a.url ?? "#"}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="group/anexo relative overflow-hidden rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md"
+                                  className="group/anexo relative overflow-hidden rounded-lg border border-slate-200 bg-superficie transition-shadow hover:shadow-md"
                                 >
                                   {ehImagem && a.url ? (
                                     // eslint-disable-next-line @next/next/no-img-element
@@ -274,7 +274,7 @@ export function ListaManutencoes({
                                       </span>
                                     </span>
                                   )}
-                                  <span className="absolute right-1 top-1 rounded bg-slate-900/70 p-1 opacity-0 transition-opacity group-hover/anexo:opacity-100">
+                                  <span className="absolute right-1 top-1 rounded bg-black/60 p-1 opacity-0 transition-opacity group-hover/anexo:opacity-100">
                                     <ExternalLink className="h-3 w-3 text-white" />
                                   </span>
                                 </a>

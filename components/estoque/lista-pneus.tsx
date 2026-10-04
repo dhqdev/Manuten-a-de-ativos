@@ -72,14 +72,14 @@ export function ListaPneus({
               onClick={() => setFiltro(f.id)}
               className={cn(
                 "pressionavel flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                filtro === f.id ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100",
+                filtro === f.id ? "bg-slate-900 text-slate-50 shadow-sm" : "text-slate-600 hover:bg-slate-100",
               )}
             >
               {f.rotulo}
               <span
                 className={cn(
                   "rounded-full px-1.5 text-[10px] tabular-nums",
-                  filtro === f.id ? "bg-white/20" : "bg-slate-100 text-slate-500",
+                  filtro === f.id ? "bg-slate-50/20" : "bg-slate-100 text-slate-500",
                 )}
               >
                 {contar(f.id)}

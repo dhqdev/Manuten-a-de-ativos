@@ -273,7 +273,7 @@ export function GeradorRelatorio({
       ) : (
         <>
           {/* Totais */}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
             <Total rotulo="Custo total no período" valor={moeda(totais.custoTotal)} destaque />
             <Total rotulo="Manutenções realizadas" valor={numero(totais.quantidade)} />
             <Total rotulo="Custo médio por serviço" valor={moeda(totais.ticketMedio)} />
@@ -461,14 +461,14 @@ function Total({
   destaque?: boolean;
 }) {
   return (
-    <div className={cn("card p-4", destaque && "bg-slate-900")}>
-      <p className={cn("text-xs font-medium uppercase tracking-wide", destaque ? "text-slate-400" : "text-slate-500")}>
+    <div className={cn("card min-w-0 p-3.5 sm:p-4", destaque && "bg-slate-900")}>
+      <p className={cn("truncate text-[11px] font-medium uppercase tracking-wide sm:text-xs", destaque ? "text-slate-400" : "text-slate-500")}>
         {rotulo}
       </p>
       <p
         className={cn(
-          "mt-1.5 text-xl font-semibold tracking-tight",
-          destaque ? "text-white" : "text-slate-900",
+          "mt-1.5 truncate text-lg font-semibold tracking-tight sm:text-xl",
+          destaque ? "text-slate-50" : "text-slate-900",
         )}
       >
         {valor}

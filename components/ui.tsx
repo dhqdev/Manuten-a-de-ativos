@@ -11,9 +11,9 @@ export function cn(...c: (string | false | null | undefined)[]) {
  */
 const VARIANTES = {
   primario:
-    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 focus-visible:outline-slate-900 shadow-[0_1px_2px_0_rgb(15_23_42/0.12)]",
+    "bg-slate-900 text-slate-50 hover:bg-slate-800 active:bg-slate-950 focus-visible:outline-slate-900 shadow-[0_1px_2px_0_rgb(15_23_42/0.12)]",
   secundario:
-    "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus-visible:outline-slate-900",
+    "bg-superficie text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus-visible:outline-slate-900",
   perigo: "bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600",
   sutil: "bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-slate-900",
   fantasma: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-900",
@@ -81,14 +81,23 @@ export function Cabecalho({
   acoes?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:border-b sm:border-slate-200/80 sm:pb-5">
       <div className="min-w-0">
-        <h1 className="truncate text-[22px] font-semibold leading-tight text-slate-900 sm:text-2xl">
+        <h1 className="truncate text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">
           {titulo}
         </h1>
-        {descricao && <p className="mt-1.5 text-sm text-slate-500">{descricao}</p>}
+        {descricao && (
+          <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500 sm:mt-1.5 sm:text-sm">
+            {descricao}
+          </p>
+        )}
       </div>
-      {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}
+      {acoes && (
+        // No celular os botões dividem a largura em vez de empilhar em tamanhos soltos.
+        <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:[&>:is(a,button)]:h-10 max-sm:[&>:is(a,button)]:flex-1 max-sm:[&>:is(a,button)]:justify-center max-sm:[&>:is(a,button)]:px-3">
+          {acoes}
+        </div>
+      )}
     </div>
   );
 }

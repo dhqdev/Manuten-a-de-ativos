@@ -124,7 +124,7 @@ function CartaoPlano({
           : "border-l-4 border-l-emerald-500";
 
   return (
-    <li className={cn("card p-4", borda, p.situacao === "inativo" && "opacity-70")}>
+    <li className={cn("card p-3.5 sm:p-4", borda, p.situacao === "inativo" && "opacity-70")}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -168,7 +168,7 @@ function CartaoPlano({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+      <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm sm:mt-4">
         <div>
           <p className="text-xs text-slate-500">
             {porHoras ? "Próxima no horímetro" : "Próxima manutenção"}

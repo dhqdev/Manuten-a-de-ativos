@@ -156,7 +156,7 @@ export function DialogoAtivo({
 
             {/* Foto do ativo */}
             <div className="flex items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-              <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+              <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-superficie ring-1 ring-slate-200">
                 {imagem ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={imagem} alt="Foto do ativo" className="h-full w-full object-cover" />
@@ -172,7 +172,7 @@ export function DialogoAtivo({
                 </p>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                  <label className="cursor-pointer rounded-lg border border-slate-300 bg-superficie px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
                     {imagem ? "Trocar foto" : "Escolher foto"}
                     <input
                       type="file"

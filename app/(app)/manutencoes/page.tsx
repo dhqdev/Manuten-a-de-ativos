@@ -24,7 +24,9 @@ export default async function ManutencoesPage({
   const registra = podeRegistrar(papel);
   const supabase = await createClient();
 
-  const [{ data: planos }, { data: historico }, { data: ativos }] = await Promise.all([
+  // Anexos vêm junto (filtrados pela empresa) em vez de esperar a lista de
+  // manutenções: uma ida a menos ao banco antes de a tela aparecer.
+  const [{ data: planos }, { data: historico }, { data: ativos }, { data: linhasAnexos }] = await Promise.all([
     supabase.from("vw_planos_status").select("*").eq("org_id", orgId),
     supabase
       .from("vw_manutencoes_completo")
@@ -33,6 +35,10 @@ export default async function ManutencoesPage({
       .order("data_manutencao", { ascending: false })
       .limit(300),
     supabase.from("ativos").select("id, nome, identificacao").eq("org_id", orgId).order("nome"),
+    supabase
+      .from("manutencao_anexos")
+      .select("id, manutencao_id, nome, path, tipo_mime")
+      .eq("org_id", orgId),
   ]);
 
   const listaPlanos = (planos ?? []) as PlanoStatus[];
@@ -40,27 +46,23 @@ export default async function ManutencoesPage({
   const opcoesAtivos = ativos ?? [];
   const opcoesPlanos = listaPlanos.map((p) => ({ id: p.id, tipo: p.tipo, ativo_id: p.ativo_id }));
 
-  // Anexos das manutenções carregadas
+  // Só os anexos das manutenções carregadas ganham link assinado.
+  const carregadas = new Set(lista.map((m) => m.id));
+  const linhas = (linhasAnexos ?? []).filter((l) => carregadas.has(l.manutencao_id));
+
   let anexos: AnexoComUrl[] = [];
-  if (lista.length) {
-    const { data: linhas } = await supabase
-      .from("manutencao_anexos")
-      .select("id, manutencao_id, nome, path, tipo_mime")
-      .in("manutencao_id", lista.map((m) => m.id));
+  if (linhas.length) {
+    const { data: urls } = await supabase.storage
+      .from("manutencoes")
+      .createSignedUrls(linhas.map((l) => l.path), 3600);
 
-    if (linhas?.length) {
-      const { data: urls } = await supabase.storage
-        .from("manutencoes")
-        .createSignedUrls(linhas.map((l) => l.path), 3600);
-
-      anexos = linhas.map((l, i) => ({
-        id: l.id,
-        manutencao_id: l.manutencao_id,
-        nome: l.nome,
-        tipo_mime: l.tipo_mime,
-        url: urls?.[i]?.signedUrl ?? null,
-      }));
-    }
+    anexos = linhas.map((l, i) => ({
+      id: l.id,
+      manutencao_id: l.manutencao_id,
+      nome: l.nome,
+      tipo_mime: l.tipo_mime,
+      url: urls?.[i]?.signedUrl ?? null,
+    }));
   }
 
   const contar = (s: SituacaoPlano) => listaPlanos.filter((p) => p.situacao === s).length;

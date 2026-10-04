@@ -10,7 +10,7 @@ export default function RecuperarSenhaPage() {
       titulo="Recuperar senha"
       subtitulo="Enviaremos um link para você criar uma nova senha."
       rodape={
-        <Link href="/login" className="font-medium text-marca-600 hover:text-marca-700">
+        <Link href="/login" className="font-medium text-slate-900 underline-offset-4 hover:underline">
           Voltar para o login
         </Link>
       }

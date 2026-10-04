@@ -29,7 +29,7 @@ export function Logo({
   return (
     <span
       className={`flex ${caixa} shrink-0 items-center justify-center rounded-[10px] ${
-        tom === "claro" ? "bg-white text-slate-900" : "bg-slate-900 text-white"
+        tom === "claro" ? "bg-superficie text-slate-900" : "bg-slate-900 text-slate-50"
       }`}
     >
       <Simbolo className={icone} />

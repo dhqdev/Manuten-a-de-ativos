@@ -19,6 +19,8 @@ function traduzir(mensagem: string) {
   if (m.includes("rate limit") || m.includes("too many"))
     return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
   if (m.includes("unable to validate email")) return "E-mail inválido.";
+  if (m.includes("fetch failed") || m.includes("network"))
+    return "Sem conexão com o servidor. Confira a internet e tente de novo.";
   return mensagem;
 }
 

@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
-import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from "lucide-react";
+import { startTransition, useActionState } from "react";
+import { ArrowRight, LoaderCircle, Mail } from "lucide-react";
 import { entrar, type EstadoForm } from "@/app/auth/actions";
+import { CampoIcone, CampoSenha, enviarSemLimpar } from "@/components/auth/campos";
 import { Alerta } from "@/components/auth/moldura";
 import { Botao } from "@/components/ui";
 
 export function FormLogin({ destino, avisoInicial }: { destino?: string; avisoInicial?: string }) {
   const [estado, acao, enviando] = useActionState<EstadoForm, FormData>(entrar, null);
-  const [verSenha, setVerSenha] = useState(false);
 
   const erro = estado?.erro ?? avisoInicial;
 
   return (
-    <form action={acao} className="space-y-5">
+    <form onSubmit={enviarSemLimpar(acao, startTransition)} className="space-y-5">
       {erro && <Alerta tipo="erro">{erro}</Alerta>}
 
       <input type="hidden" name="redirect" value={destino ?? "/dashboard"} />
@@ -23,19 +23,17 @@ export function FormLogin({ destino, avisoInicial }: { destino?: string; avisoIn
         <label htmlFor="email" className="rotulo">
           E-mail
         </label>
-        <div className="group relative">
-          <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-slate-900" />
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            autoFocus
-            placeholder="voce@empresa.com.br"
-            className="campo h-12 pl-11"
-          />
-        </div>
+        <CampoIcone
+          Icone={Mail}
+          id="email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoCapitalize="none"
+          autoComplete="email"
+          required
+          placeholder="voce@empresa.com.br"
+        />
       </div>
 
       <div>
@@ -50,26 +48,13 @@ export function FormLogin({ destino, avisoInicial }: { destino?: string; avisoIn
             Esqueci minha senha
           </Link>
         </div>
-        <div className="group relative">
-          <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-slate-900" />
-          <input
-            id="senha"
-            name="senha"
-            type={verSenha ? "text" : "password"}
-            autoComplete="current-password"
-            required
-            placeholder="••••••••"
-            className="campo h-12 pl-11 pr-12"
-          />
-          <button
-            type="button"
-            onClick={() => setVerSenha((v) => !v)}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-slate-400 transition-colors hover:text-slate-700"
-            aria-label={verSenha ? "Ocultar senha" : "Mostrar senha"}
-          >
-            {verSenha ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
-          </button>
-        </div>
+        <CampoSenha
+          id="senha"
+          name="senha"
+          autoComplete="current-password"
+          required
+          placeholder="••••••••"
+        />
       </div>
 
       <Botao
