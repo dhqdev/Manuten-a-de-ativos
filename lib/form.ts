@@ -51,3 +51,17 @@ export function mensagemErro(e: unknown): string {
   if (typeof e === "object" && e && "message" in e) return String((e as { message: unknown }).message);
   return "Não foi possível concluir a operação.";
 }
+
+/**
+ * Mensagem amigável para erros do banco. Os dois casos mais comuns depois dos
+ * papéis (migracao-v2.sql) são o RLS recusando a gravação e o `.single()`
+ * não achando a linha porque o RLS a escondeu — ambos são falta de permissão.
+ */
+export function erroBanco(erro: { code?: string; message?: string }): { ok: false; erro: string } {
+  const m = erro.message ?? "";
+  if (/row-level security/i.test(m) || erro.code === "42501" || erro.code === "PGRST116") {
+    return { ok: false, erro: "Seu papel nesta empresa não permite esta ação. Fale com o gestor." };
+  }
+  if (erro.code === "23505") return { ok: false, erro: "Já existe um registro com esses dados." };
+  return { ok: false, erro: m || "Não foi possível concluir a operação." };
+}

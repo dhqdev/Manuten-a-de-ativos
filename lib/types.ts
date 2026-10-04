@@ -141,7 +141,8 @@ export type DashboardResumo = {
 export type FiltrosRelatorio = {
   de: string;
   ate: string;
-  categoria: string;
+  /** Vazio = todas as categorias. */
+  categorias: string[];
   ativo: string;
   tipo: "todos" | TipoManutencao;
 };
@@ -149,3 +150,55 @@ export type FiltrosRelatorio = {
 export type DadosDoRelatorio =
   | { ok: true; manutencoes: ManutencaoCompleta[]; proximas: PlanoStatus[] }
   | { ok: false; erro: string };
+
+export type StatusPneu = "estoque" | "em_uso" | "recapagem" | "descartado";
+export type CondicaoPneu = "novo" | "recapado" | "usado";
+export type TipoMovPneu =
+  | "entrada"
+  | "instalacao"
+  | "remocao"
+  | "recapagem"
+  | "retorno"
+  | "inspecao"
+  | "descarte";
+
+export type Pneu = {
+  id: string;
+  org_id: string;
+  numero_fogo: string;
+  marca: string;
+  modelo: string | null;
+  medida: string;
+  dot: string | null;
+  condicao: CondicaoPneu;
+  status: StatusPneu;
+  ativo_id: string | null;
+  posicao: string | null;
+  horimetro_instalacao: number | null;
+  km_rodados: number;
+  sulco_inicial_mm: number | null;
+  sulco_atual_mm: number | null;
+  pressao_psi: number | null;
+  recapagens: number;
+  data_compra: string | null;
+  valor_compra: number | null;
+  fornecedor: string | null;
+  nota_fiscal: string | null;
+  localizacao: string | null;
+  observacoes: string | null;
+  created_at: string;
+};
+
+export type MovimentacaoPneu = {
+  id: string;
+  pneu_id: string;
+  tipo: TipoMovPneu;
+  data: string;
+  ativo_id: string | null;
+  posicao: string | null;
+  horimetro: number | null;
+  sulco_mm: number | null;
+  valor: number | null;
+  observacoes: string | null;
+  created_at: string;
+};

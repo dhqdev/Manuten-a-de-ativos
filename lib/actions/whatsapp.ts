@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { booleano, inteiro, mensagemErro, type Resultado } from "@/lib/form";
+import {
+  erroBanco,
+  booleano,
+  inteiro,
+  mensagemErro,
+  type Resultado,
+} from "@/lib/form";
 import {
   abrirConexao,
   dadosInstancia,
@@ -14,6 +20,18 @@ import {
   renovarQr,
 } from "@/lib/evolution";
 import { montarResumo } from "@/lib/whatsapp-mensagem";
+import { SEM_PERMISSAO, podeGerenciar } from "@/lib/permissoes";
+
+/**
+ * Conectar, desconectar e mexer nas preferências é coisa de proprietário ou
+ * gestor. A checagem vem antes de qualquer chamada à Evolution: o RLS só
+ * protege o banco, não o servidor do WhatsApp.
+ */
+async function exigirGestor() {
+  const ctx = await getContexto();
+  if (!podeGerenciar(ctx.papel)) throw new Error(SEM_PERMISSAO);
+  return ctx;
+}
 
 export type StatusWhatsapp = {
   status: "desconectado" | "conectando" | "conectado";
@@ -26,7 +44,7 @@ export type StatusWhatsapp = {
 /** Cria/reabre a instância da empresa e devolve o QR code para escanear. */
 export async function iniciarConexao(): Promise<StatusWhatsapp> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
     const instancia = nomeInstancia(orgId);
 
@@ -53,7 +71,7 @@ export async function iniciarConexao(): Promise<StatusWhatsapp> {
 /** Consultado a cada poucos segundos enquanto o QR está na tela. */
 export async function consultarStatus(): Promise<StatusWhatsapp> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
@@ -110,7 +128,7 @@ export async function consultarStatus(): Promise<StatusWhatsapp> {
 
 export async function encerrarConexao(): Promise<Resultado> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
@@ -132,7 +150,7 @@ export async function encerrarConexao(): Promise<Resultado> {
 
 export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultado> {
   try {
-    const { orgId } = await getContexto();
+    const { orgId } = await exigirGestor();
     const supabase = await createClient();
 
     const { error } = await supabase
@@ -141,10 +159,11 @@ export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultad
         notificar: booleano(fd, "notificar"),
         incluir_atrasadas: booleano(fd, "incluir_atrasadas"),
         dias_antecedencia: Math.min(Math.max(inteiro(fd, "dias_antecedencia", 3) ?? 3, 0), 60),
+        horario_envio: Math.min(Math.max(inteiro(fd, "horario_envio", 8) ?? 8, 0), 23),
       })
       .eq("org_id", orgId);
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/configuracoes");
     return { ok: true };
@@ -156,7 +175,7 @@ export async function salvarPreferenciasWhatsapp(fd: FormData): Promise<Resultad
 /** Manda agora o mesmo resumo que a rotina diária enviaria. */
 export async function enviarResumoTeste(): Promise<Resultado> {
   try {
-    const { orgId, organizacao } = await getContexto();
+    const { orgId, organizacao } = await exigirGestor();
     const supabase = await createClient();
 
     const { data: conexao } = await supabase
@@ -170,7 +189,7 @@ export async function enviarResumoTeste(): Promise<Resultado> {
     }
 
     const { data: pendencias, error } = await supabase.rpc("whatsapp_pendencias", { p_org: orgId });
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     const texto = montarResumo(organizacao.nome, pendencias ?? [], true);
     await enviarTexto(conexao.instancia, conexao.numero, texto);

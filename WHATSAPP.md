@@ -1,7 +1,8 @@
 # Notificações por WhatsApp (Evolution API)
 
 Cada empresa conecta o próprio WhatsApp lendo um QR code dentro do sistema e
-passa a receber, toda manhã, o resumo das manutenções atrasadas e a vencer.
+passa a receber, todo dia no horário que escolher, o resumo das manutenções
+atrasadas e a vencer.
 
 ---
 
@@ -13,6 +14,7 @@ passa a receber, toda manhã, o resumo das manutenções atrasadas e a vencer.
 4. Assim que a leitura acontece, a tela muda sozinha e mostra o número conectado.
 5. Ali mesmo dá para ajustar:
    - receber ou não o resumo diário;
+   - **horário do envio** (hora cheia, horário de Brasília);
    - incluir ou não as atrasadas;
    - com quantos dias de antecedência avisar;
    - **Enviar teste**, que dispara na hora o mesmo texto da rotina diária.
@@ -45,23 +47,27 @@ build falhar se alguém tentar importá-lo em um componente de cliente.
 
 ### A rotina diária
 
-`GET /api/notificacoes/disparar`, protegida por `CRON_SECRET`.
+`GET /api/notificacoes/disparar`, protegida por `CRON_SECRET` (só no cabeçalho
+`Authorization: Bearer ...`).
 
-Agendada no `vercel.json` para **11:00 UTC (8h de Brasília)**:
+Ela é chamada **de hora em hora** por um agendador gratuito do próprio Supabase
+(pg_cron), e cada empresa recebe a partir do horário que escolheu. O plano Hobby
+da Vercel só permite um cron por dia, por isso o agendamento de hora em hora
+fica no Supabase.
 
-```json
-{ "crons": [{ "path": "/api/notificacoes/disparar", "schedule": "0 11 * * *" }] }
-```
+Para ligar: abra [`supabase/agendamento-whatsapp.sql`](supabase/agendamento-whatsapp.sql),
+troque `SUA_URL` e `SEU_CRON_SECRET` e rode no SQL Editor.
 
-> O plano Hobby da Vercel permite **um disparo por dia** por cron. Por isso o
-> resumo é diário e sem horário configurável por empresa. Se quiser horários
-> diferentes por cliente, é preciso o plano Pro (ou apontar um agendador externo
-> para a mesma URL).
+O cron da Vercel (`vercel.json`, 11:00 UTC = 8h de Brasília) continua como
+reserva: se o agendador do Supabase não estiver configurado, só quem escolheu
+até 8h recebe.
 
 Para cada empresa conectada, a rotina:
 
-1. confere se já enviou hoje (a tabela `whatsapp_envios` tem restrição única por
-   empresa e dia, então nem uma repetição do cron duplica a mensagem);
+1. confere se já chegou o horário da empresa e se ela já recebeu hoje (data de
+   Brasília; `whatsapp_envios` tem restrição única por empresa e dia, então nem
+   uma repetição do cron duplica a mensagem — uma falha é tentada de novo na
+   hora seguinte);
 2. confirma que o WhatsApp continua conectado — se caiu, marca como desconectado;
 3. busca as pendências via `whatsapp_pendencias()`;
 4. envia e registra.
@@ -69,13 +75,15 @@ Para cada empresa conectada, a rotina:
 ### Testar sem esperar o dia seguinte
 
 ```bash
-curl "https://sua-url.vercel.app/api/notificacoes/disparar?segredo=SEU_CRON_SECRET"
+curl -H "Authorization: Bearer SEU_CRON_SECRET" https://sua-url.vercel.app/api/notificacoes/disparar
 ```
+
+Ou use **Enviar teste** em Configurações → WhatsApp.
 
 Resposta:
 
 ```json
-{ "verificadas": 1, "enviadas": 1, "puladas": 0, "falhas": [] }
+{ "hora": 8, "verificadas": 1, "enviadas": 1, "puladas": 0, "falhas": [] }
 ```
 
 Para reenviar no mesmo dia, apague a linha do dia em `whatsapp_envios`.
@@ -105,11 +113,13 @@ Abrir calendário: https://sua-url.vercel.app/calendario
 
 ## Instalação
 
-1. Rode [`supabase/migracao-whatsapp.sql`](supabase/migracao-whatsapp.sql) no SQL Editor
-   (ou o `schema.sql` inteiro, que já inclui essa parte).
-2. Cadastre na Vercel: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `SUPABASE_SECRET_KEY`
+1. Rode [`supabase/migracao-whatsapp.sql`](supabase/migracao-whatsapp.sql) e
+   [`supabase/migracao-v2.sql`](supabase/migracao-v2.sql) no SQL Editor
+   (ou o `schema.sql` inteiro, que já inclui as duas).
+2. Configure o agendador: [`supabase/agendamento-whatsapp.sql`](supabase/agendamento-whatsapp.sql).
+3. Cadastre na Vercel: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `SUPABASE_SECRET_KEY`
    e `CRON_SECRET`.
-3. Faça o Redeploy.
+4. Faça o Redeploy.
 
 ## Observações operacionais
 

@@ -27,7 +27,7 @@ const TAMANHOS = {
 };
 
 const BASE =
-  "inline-flex items-center rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
+  "pressionavel inline-flex items-center rounded-lg font-medium focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
 
 type BotaoProps = {
   variante?: keyof typeof VARIANTES;
@@ -105,7 +105,7 @@ export function EstadoVazio({
   acao?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center justify-center px-6 py-14 text-center">
+    <div className="card entrada-pagina flex flex-col items-center justify-center px-6 py-14 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
         {icone}
       </div>

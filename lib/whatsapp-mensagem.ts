@@ -1,4 +1,4 @@
-import { dataBR, numero } from "@/lib/format";
+import { dataBR, numero, hoje } from "@/lib/format";
 
 export type Pendencia = {
   plano_id: string;
@@ -36,7 +36,7 @@ export function montarResumo(empresa: string, pendencias: Pendencia[], ehTeste =
 
   if (ehTeste) linhas.push("_Mensagem de teste_", "");
 
-  linhas.push(`*Manutenções — ${empresa}*`, `_${dataBR(new Date().toLocaleDateString("sv-SE"))}_`, "");
+  linhas.push(`*Manutenções — ${empresa}*`, `_${dataBR(hoje())}_`, "");
 
   if (pendencias.length === 0) {
     linhas.push("✅ Nenhuma manutenção pendente. Tudo em dia.");

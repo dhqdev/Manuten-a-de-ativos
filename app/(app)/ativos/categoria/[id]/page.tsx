@@ -6,13 +6,15 @@ import { ListaAtivos, type AtivoResumo } from "@/components/ativos/lista-ativos"
 import { Cabecalho, EstadoVazio } from "@/components/ui";
 import { urlsDasFotos } from "@/lib/fotos";
 import { IconeCategoria } from "@/lib/icones";
+import { podeGerenciar } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Ativo, Categoria } from "@/lib/types";
 
 export default async function CategoriaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { orgId } = await getContexto();
+  const { orgId, papel } = await getContexto();
+  const gestor = podeGerenciar(papel);
   const supabase = await createClient();
 
   const { data: categoria } = await supabase
@@ -85,7 +87,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
       <Cabecalho
         titulo={cat.nome}
         descricao={cat.descricao ?? `${lista.length} ativo(s) nesta categoria`}
-        acoes={<DialogoAtivo categorias={categorias ?? []} categoriaPadrao={cat.id} />}
+        acoes={gestor ? <DialogoAtivo categorias={categorias ?? []} categoriaPadrao={cat.id} /> : undefined}
       />
 
       <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -120,7 +122,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
           icone={<Package className="h-6 w-6" />}
           titulo="Nenhum ativo nesta categoria"
           descricao="Cadastre o primeiro equipamento para começar a registrar manutenções."
-          acao={<DialogoAtivo categorias={categorias ?? []} categoriaPadrao={cat.id} />}
+          acao={gestor ? <DialogoAtivo categorias={categorias ?? []} categoriaPadrao={cat.id} /> : undefined}
         />
       ) : (
         <ListaAtivos ativos={lista} />

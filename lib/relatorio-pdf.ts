@@ -197,19 +197,20 @@ export function gerarPDF(dados: DadosRelatorio): jsPDF {
   autoTable(doc, {
     ...estiloTabela,
     startY: y,
-    head: [["Data", "Ativo", "Tipo", "Serviço realizado", "Responsável / Empresa", "Valor"]],
+    head: [["Data", "Ativo", "Tipo", "Serviço realizado", "Horím. / KM", "Responsável / Empresa", "Valor"]],
     body: dados.manutencoes.length
       ? dados.manutencoes.map((m) => [
           dataBR(m.data_manutencao),
           `${m.ativo_nome}${m.ativo_identificacao ? `\n${m.ativo_identificacao}` : ""}`,
           TIPOS_MANUTENCAO[m.tipo],
           `${m.descricao}${m.pecas ? `\nPeças: ${m.pecas}` : ""}`,
+          m.horimetro !== null && m.horimetro !== undefined ? numero(m.horimetro) : "—",
           [m.responsavel, m.empresa].filter(Boolean).join("\n") || "—",
           moeda(m.valor),
         ])
-      : [["—", "—", "—", "Nenhuma manutenção no período selecionado", "—", "—"]],
+      : [["—", "—", "—", "Nenhuma manutenção no período selecionado", "—", "—", "—"]],
     foot: dados.manutencoes.length
-      ? [["", "", "", "", "TOTAL", moeda(totais.custoTotal)]]
+      ? [["", "", "", "", "", "TOTAL", moeda(totais.custoTotal)]]
       : undefined,
     footStyles: {
       fillColor: CINZA_CLARO,
@@ -221,9 +222,10 @@ export function gerarPDF(dados: DadosRelatorio): jsPDF {
     columnStyles: {
       0: { cellWidth: 18 },
       1: { cellWidth: 32 },
-      2: { cellWidth: 20 },
-      4: { cellWidth: 32 },
-      5: { halign: "right", cellWidth: 26 },
+      2: { cellWidth: 18 },
+      4: { halign: "right", cellWidth: 18 },
+      5: { cellWidth: 28 },
+      6: { halign: "right", cellWidth: 24 },
     },
   });
 

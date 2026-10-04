@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { FaiscaClique } from "@/components/efeitos/faisca-clique";
 import { RegistrarServiceWorker } from "@/components/registrar-sw";
 import "./globals.css";
 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         {children}
         <RegistrarServiceWorker />
+        <FaiscaClique />
       </body>
     </html>
   );

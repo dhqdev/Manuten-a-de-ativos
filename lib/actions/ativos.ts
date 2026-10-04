@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { hoje } from "@/lib/format";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  erroBanco,
   booleano,
   data,
   inteiro,
@@ -13,6 +15,8 @@ import {
   textoObrigatorio,
   type Resultado,
 } from "@/lib/form";
+import { SEM_PERMISSAO } from "@/lib/permissoes";
+import { removerArquivos } from "@/lib/storage";
 import type { StatusAtivo } from "@/lib/types";
 
 /** Único bucket do projeto. Ver "8. STORAGE" em supabase/schema.sql. */
@@ -55,7 +59,7 @@ export async function salvarAtivo(fd: FormData): Promise<Resultado> {
       marca: texto(fd, "marca"),
       identificacao: texto(fd, "identificacao"),
       ano: inteiro(fd, "ano"),
-      data_cadastro: data(fd, "data_cadastro") ?? new Date().toLocaleDateString("sv-SE"),
+      data_cadastro: data(fd, "data_cadastro") ?? hoje(),
       horimetro_atual: numero(fd, "horimetro_atual") ?? 0,
       status: (texto(fd, "status") ?? "ativo") as StatusAtivo,
       observacoes: texto(fd, "observacoes"),
@@ -68,7 +72,7 @@ export async function salvarAtivo(fd: FormData): Promise<Resultado> {
       ? await supabase.from("ativos").update(dados).eq("id", id).select("id").single()
       : await supabase.from("ativos").insert(dados).select("id").single();
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/dashboard");
@@ -81,13 +85,42 @@ export async function salvarAtivo(fd: FormData): Promise<Resultado> {
 
 export async function excluirAtivo(id: string): Promise<Resultado> {
   try {
+    const { orgId } = await getContexto();
     const supabase = await createClient();
 
-    // O arquivo não sai por cascade: tem que ser apagado antes da linha.
-    await apagarFoto(supabase, id);
+    const { data: alvo } = await supabase
+      .from("ativos")
+      .select("id, foto_url")
+      .eq("id", id)
+      .eq("org_id", orgId)
+      .maybeSingle();
 
-    const { error } = await supabase.from("ativos").delete().eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    if (!alvo) return { ok: false, erro: "Ativo não encontrado nesta empresa." };
+
+    // As linhas de manutenções e anexos saem por cascade, mas os arquivos no
+    // Storage não: coleta os caminhos antes de apagar, senão ficam órfãos.
+    const { data: manutencoes } = await supabase
+      .from("manutencoes")
+      .select("id")
+      .eq("ativo_id", id);
+
+    const idsManutencoes = (manutencoes ?? []).map((m) => m.id);
+    const { data: anexos } = idsManutencoes.length
+      ? await supabase.from("manutencao_anexos").select("path").in("manutencao_id", idsManutencoes)
+      : { data: [] as { path: string }[] };
+
+    const { data: apagados, error } = await supabase
+      .from("ativos")
+      .delete()
+      .eq("id", id)
+      .eq("org_id", orgId)
+      .select("id");
+    if (error) return erroBanco(error);
+    if (!apagados?.length) return { ok: false, erro: SEM_PERMISSAO };
+
+    // Só depois do banco: se a exclusão falhar, nenhuma foto some à toa.
+    const arquivos = [...(anexos ?? []).map((a) => a.path), ...(alvo.foto_url ? [alvo.foto_url] : [])];
+    await removerArquivos(supabase, arquivos);
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/dashboard");
@@ -101,8 +134,13 @@ export async function excluirAtivo(id: string): Promise<Resultado> {
 export async function atualizarHorimetro(id: string, valor: number): Promise<Resultado> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("ativos").update({ horimetro_atual: valor }).eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    const { data: afetadas, error } = await supabase
+      .from("ativos")
+      .update({ horimetro_atual: valor })
+      .eq("id", id)
+      .select("id");
+    if (error) return erroBanco(error);
+    if (!afetadas?.length) return { ok: false, erro: SEM_PERMISSAO };
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/manutencoes");
@@ -172,7 +210,7 @@ export async function definirFotoAtivo(ativoId: string, caminho: string): Promis
       .eq("id", ativoId)
       .eq("org_id", orgId);
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/ativos", "layout");
     return { ok: true };

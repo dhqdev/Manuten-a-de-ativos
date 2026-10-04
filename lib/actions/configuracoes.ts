@@ -1,16 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { SEM_PERMISSAO } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { mensagemErro, texto, textoObrigatorio, type Resultado } from "@/lib/form";
+import {
+  erroBanco,
+  mensagemErro,
+  texto,
+  textoObrigatorio,
+  type Resultado,
+} from "@/lib/form";
 
 export async function salvarEmpresa(fd: FormData): Promise<Resultado> {
   try {
     const { orgId } = await getContexto();
     const supabase = await createClient();
 
-    const { error } = await supabase
+    const { data: alterada, error } = await supabase
       .from("organizacoes")
       .update({
         nome: textoObrigatorio(fd, "nome", "o nome da empresa"),
@@ -18,9 +25,11 @@ export async function salvarEmpresa(fd: FormData): Promise<Resultado> {
         telefone: texto(fd, "telefone"),
         endereco: texto(fd, "endereco"),
       })
-      .eq("id", orgId);
+      .eq("id", orgId)
+      .select("id");
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
+    if (!alterada?.length) return { ok: false, erro: SEM_PERMISSAO };
 
     revalidatePath("/", "layout");
     return { ok: true };
@@ -43,7 +52,7 @@ export async function salvarPerfil(fd: FormData): Promise<Resultado> {
       })
       .eq("id", userId);
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/", "layout");
     return { ok: true };
@@ -69,7 +78,7 @@ export async function trocarEmpresa(fd: FormData): Promise<Resultado> {
     if (!membro) return { ok: false, erro: "Você não faz parte desta empresa." };
 
     const { error } = await supabase.from("profiles").update({ org_atual: orgId }).eq("id", userId);
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/", "layout");
     return { ok: true };
@@ -88,7 +97,7 @@ export async function alterarSenha(fd: FormData): Promise<Resultado> {
 
     const supabase = await createClient();
     const { error } = await supabase.auth.updateUser({ password: senha });
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     return { ok: true };
   } catch (e) {

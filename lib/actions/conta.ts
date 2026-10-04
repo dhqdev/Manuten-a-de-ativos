@@ -6,7 +6,7 @@ import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { desconectar } from "@/lib/evolution";
-import { mensagemErro, texto, type Resultado } from "@/lib/form";
+import { erroBanco, mensagemErro, texto, type Resultado } from "@/lib/form";
 
 type RetornoExclusao = {
   orgs_apagadas: string[];
@@ -46,7 +46,7 @@ export async function excluirConta(fd: FormData): Promise<Resultado> {
             "Função de exclusão ausente no banco. Rode supabase/migracao-seguranca.sql no SQL Editor.",
         };
       }
-      return { ok: false, erro: error.message };
+      return erroBanco(error);
     }
 
     const retorno = (data ?? { orgs_apagadas: [], arquivos: [], instancias: [] }) as RetornoExclusao;

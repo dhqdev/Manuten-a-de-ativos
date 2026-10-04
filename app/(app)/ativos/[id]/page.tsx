@@ -13,13 +13,16 @@ import { excluirAtivo } from "@/lib/actions/ativos";
 import { urlsDasFotos } from "@/lib/fotos";
 import { IconeCategoria } from "@/lib/icones";
 import { STATUS_ATIVO, dataBR, moeda, numero } from "@/lib/format";
+import { podeGerenciar, podeRegistrar } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Ativo, Categoria, Manutencao, PlanoStatus } from "@/lib/types";
 
 export default async function AtivoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { orgId } = await getContexto();
+  const { orgId, papel } = await getContexto();
+  const gestor = podeGerenciar(papel);
+  const registra = podeRegistrar(papel);
   const supabase = await createClient();
 
   const { data: ativo } = await supabase
@@ -102,18 +105,22 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
         descricao={[item.marca, item.modelo, item.identificacao].filter(Boolean).join(" · ")}
         acoes={
           <>
-            <DialogoAtivo categorias={categorias ?? []} ativo={item} fotoAtual={fotoUrl} />
-            <BotaoExcluir
-              acao={excluirAtivo.bind(null, item.id)}
-              titulo="Excluir ativo"
-              mensagem={`Excluir "${item.nome}" apaga também todo o histórico de manutenções e planos preventivos dele.`}
-            />
-            <DialogoManutencao
-              orgId={orgId}
-              ativos={opcoesAtivos}
-              ativoPadrao={item.id}
-              planos={opcoesPlanos}
-            />
+            {gestor && <DialogoAtivo categorias={categorias ?? []} ativo={item} fotoAtual={fotoUrl} />}
+            {gestor && (
+              <BotaoExcluir
+                acao={excluirAtivo.bind(null, item.id)}
+                titulo="Excluir ativo"
+                mensagem={`Excluir "${item.nome}" apaga também todo o histórico de manutenções, planos preventivos, fotos e anexos dele.`}
+              />
+            )}
+            {registra && (
+              <DialogoManutencao
+                orgId={orgId}
+                ativos={opcoesAtivos}
+                ativoPadrao={item.id}
+                planos={opcoesPlanos}
+              />
+            )}
           </>
         }
       />
@@ -162,12 +169,14 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
                   titulo="Nenhuma manutenção registrada"
                   descricao="Registre o primeiro serviço para começar o histórico deste ativo."
                   acao={
+                    registra && (
                     <DialogoManutencao
                       orgId={orgId}
                       ativos={opcoesAtivos}
                       ativoPadrao={item.id}
                       planos={opcoesPlanos}
                     />
+                    )
                   }
                 />
               ) : (
@@ -186,15 +195,17 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
             contador: listaPlanos.length,
             conteudo: (
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <DialogoPlano ativos={opcoesAtivos} ativoPadrao={item.id} />
-                </div>
+                {gestor && (
+                  <div className="flex justify-end">
+                    <DialogoPlano ativos={opcoesAtivos} ativoPadrao={item.id} />
+                  </div>
+                )}
                 {listaPlanos.length === 0 ? (
                   <EstadoVazio
                     icone={<CalendarDays className="h-6 w-6" />}
                     titulo="Nenhuma manutenção periódica"
                     descricao="Cadastre planos preventivos por dias, meses ou horas de uso para receber alertas automáticos."
-                    acao={<DialogoPlano ativos={opcoesAtivos} ativoPadrao={item.id} />}
+                    acao={gestor ? <DialogoPlano ativos={opcoesAtivos} ativoPadrao={item.id} /> : undefined}
                   />
                 ) : (
                   <ListaPlanos

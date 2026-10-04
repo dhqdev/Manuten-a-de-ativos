@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { hoje } from "@/lib/format";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  erroBanco,
   booleano,
   data,
   inteiro,
@@ -13,6 +15,8 @@ import {
   textoObrigatorio,
   type Resultado,
 } from "@/lib/form";
+import { SEM_PERMISSAO, podeGerenciar } from "@/lib/permissoes";
+import { removerArquivos } from "@/lib/storage";
 import type { TipoManutencao, UnidadePeriodicidade } from "@/lib/types";
 
 function revalidarTudo() {
@@ -91,7 +95,7 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
 
     const id = texto(fd, "id");
     const ativoId = textoObrigatorio(fd, "ativo_id", "o ativo");
-    const dataManutencao = data(fd, "data_manutencao") ?? new Date().toLocaleDateString("sv-SE");
+    const dataManutencao = data(fd, "data_manutencao") ?? hoje();
     const horimetro = numero(fd, "horimetro");
     const valor = numero(fd, "valor") ?? 0;
     const responsavel = texto(fd, "responsavel");
@@ -140,7 +144,7 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
         .select("id")
         .single();
 
-      if (erroPlano) return { ok: false, erro: erroPlano.message };
+      if (erroPlano) return erroBanco(erroPlano);
       planoId = plano.id;
     }
 
@@ -169,7 +173,7 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
           .select("id")
           .single();
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     if (!id && planoId) await avancarPlano(supabase, planoId, dataManutencao, horimetro);
 
@@ -182,23 +186,121 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
 
 export async function excluirManutencao(id: string): Promise<Resultado> {
   try {
+    const { orgId } = await getContexto();
     const supabase = await createClient();
 
-    // Remove os arquivos do storage antes de apagar os registros.
     const { data: anexos } = await supabase
       .from("manutencao_anexos")
       .select("path")
       .eq("manutencao_id", id);
 
-    if (anexos?.length) {
-      await supabase.storage.from("manutencoes").remove(anexos.map((a) => a.path));
-    }
+    const { data: apagados, error } = await supabase
+      .from("manutencoes")
+      .delete()
+      .eq("id", id)
+      .eq("org_id", orgId)
+      .select("id");
+    if (error) return erroBanco(error);
+    if (!apagados?.length) return { ok: false, erro: SEM_PERMISSAO };
 
-    const { error } = await supabase.from("manutencoes").delete().eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    // Arquivos só depois do banco: se a exclusão for recusada, nada some à toa.
+    await removerArquivos(supabase, (anexos ?? []).map((a) => a.path));
 
     revalidarTudo();
     return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+}
+
+export type FiltroLimpeza = {
+  de: string;
+  ate: string;
+  /** "todos" apaga qualquer tipo; os demais apagam só aquele tipo. */
+  tipo: "todos" | TipoManutencao;
+  ativoId?: string | null;
+};
+
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Monta a consulta do histórico a limpar, sempre presa à empresa aberta. */
+async function consultaLimpeza(f: FiltroLimpeza) {
+  if (!DATA_ISO.test(f.de) || !DATA_ISO.test(f.ate)) throw new Error("Informe as duas datas.");
+  if (f.de > f.ate) throw new Error("A data inicial não pode ser maior que a final.");
+
+  const { orgId, papel } = await getContexto();
+  if (!podeGerenciar(papel)) throw new Error(SEM_PERMISSAO);
+
+  const supabase = await createClient();
+  let q = supabase
+    .from("manutencoes")
+    .select("id, valor")
+    .eq("org_id", orgId)
+    .gte("data_manutencao", f.de)
+    .lte("data_manutencao", f.ate);
+
+  if (f.tipo !== "todos") q = q.eq("tipo", f.tipo);
+  if (f.ativoId && UUID.test(f.ativoId)) q = q.eq("ativo_id", f.ativoId);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return { supabase, orgId, linhas: data ?? [] };
+}
+
+/** Quantos registros a limpeza apagaria — mostrado antes de confirmar. */
+export async function previaLimpeza(
+  f: FiltroLimpeza,
+): Promise<{ ok: true; quantidade: number; valor: number } | { ok: false; erro: string }> {
+  try {
+    const { linhas } = await consultaLimpeza(f);
+    return {
+      ok: true,
+      quantidade: linhas.length,
+      valor: linhas.reduce((t, l) => t + Number(l.valor ?? 0), 0),
+    };
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+}
+
+/**
+ * Apaga o histórico de um período (opcionalmente só um tipo, como preventivas).
+ * As periódicas não voltam no tempo: a próxima data continua a mesma.
+ */
+export async function limparHistorico(
+  f: FiltroLimpeza,
+): Promise<{ ok: true; quantidade: number } | { ok: false; erro: string }> {
+  try {
+    const { supabase, orgId, linhas } = await consultaLimpeza(f);
+    if (!linhas.length) return { ok: true, quantidade: 0 };
+
+    let apagadas = 0;
+    // Em lotes: uma lista enorme de ids estoura o tamanho da URL da API.
+    for (let i = 0; i < linhas.length; i += 200) {
+      const ids = linhas.slice(i, i + 200).map((l) => l.id);
+
+      const { data: anexos } = await supabase
+        .from("manutencao_anexos")
+        .select("path")
+        .in("manutencao_id", ids);
+
+      const { data: apagados, error } = await supabase
+        .from("manutencoes")
+        .delete()
+        .eq("org_id", orgId)
+        .in("id", ids)
+        .select("id");
+      if (error) return erroBanco(error);
+
+      apagadas += apagados?.length ?? 0;
+      await removerArquivos(supabase, (anexos ?? []).map((a) => a.path));
+    }
+
+    if (!apagadas) return { ok: false, erro: SEM_PERMISSAO };
+
+    revalidarTudo();
+    return { ok: true, quantidade: apagadas };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -255,7 +357,7 @@ export async function registrarAnexo(entrada: {
       tamanho: entrada.tamanho,
     });
 
-    if (error) return { ok: false, erro: error.message };
+    if (error) return erroBanco(error);
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/manutencoes");
@@ -267,18 +369,19 @@ export async function registrarAnexo(entrada: {
 
 export async function excluirAnexo(id: string): Promise<Resultado> {
   try {
+    const { orgId } = await getContexto();
     const supabase = await createClient();
 
-    const { data: anexo } = await supabase
+    const { data: apagados, error } = await supabase
       .from("manutencao_anexos")
-      .select("path")
+      .delete()
       .eq("id", id)
-      .maybeSingle();
+      .eq("org_id", orgId)
+      .select("path");
+    if (error) return erroBanco(error);
+    if (!apagados?.length) return { ok: false, erro: SEM_PERMISSAO };
 
-    if (anexo?.path) await supabase.storage.from("manutencoes").remove([anexo.path]);
-
-    const { error } = await supabase.from("manutencao_anexos").delete().eq("id", id);
-    if (error) return { ok: false, erro: error.message };
+    await removerArquivos(supabase, apagados.map((a) => a.path));
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/manutencoes");

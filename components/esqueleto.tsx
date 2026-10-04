@@ -2,7 +2,7 @@ import { cn } from "@/components/ui";
 
 /** Bloco cinza pulsante usado enquanto a tela carrega. */
 export function Bloco({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return <div className={cn("animate-pulse rounded-md bg-slate-200", className)} style={style} />;
+  return <div className={cn("reluzente rounded-md", className)} style={style} />;
 }
 
 export function CabecalhoEsqueleto({ comAcoes = true }: { comAcoes?: boolean }) {

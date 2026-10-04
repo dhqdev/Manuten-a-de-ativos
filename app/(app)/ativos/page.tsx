@@ -6,6 +6,7 @@ import { Cabecalho, EstadoVazio } from "@/components/ui";
 import { excluirCategoria } from "@/lib/actions/categorias";
 import { IconeCategoria } from "@/lib/icones";
 import { moeda } from "@/lib/format";
+import { podeGerenciar } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Categoria } from "@/lib/types";
@@ -13,7 +14,8 @@ import type { Categoria } from "@/lib/types";
 export const metadata = { title: "Ativos · Gestão de Manutenção" };
 
 export default async function AtivosPage() {
-  const { orgId } = await getContexto();
+  const { orgId, papel } = await getContexto();
+  const gestor = podeGerenciar(papel);
   const supabase = await createClient();
 
   const [{ data: categorias }, { data: ativos }, { data: gastos }] = await Promise.all([
@@ -40,7 +42,7 @@ export default async function AtivosPage() {
       <Cabecalho
         titulo="Ativos"
         descricao="Cada categoria é uma pasta com os ativos cadastrados dentro dela."
-        acoes={<DialogoCategoria />}
+        acoes={gestor ? <DialogoCategoria /> : undefined}
       />
 
       {lista.length === 0 ? (
@@ -48,20 +50,20 @@ export default async function AtivosPage() {
           icone={<FolderOpen className="h-6 w-6" />}
           titulo="Nenhuma categoria cadastrada"
           descricao="Crie categorias como Caminhões, Hidráulicos ou Empilhadeiras para organizar seus ativos."
-          acao={<DialogoCategoria />}
+          acao={gestor ? <DialogoCategoria /> : undefined}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="lista-escalonada grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {lista.map((c) => {
             const total = porCategoria.get(c.id) ?? 0;
             return (
-              <div key={c.id} className="card group relative overflow-hidden p-5 transition-shadow hover:shadow-md">
+              <div key={c.id} className="card group relative overflow-hidden p-5 transition-[box-shadow,border-color] duration-300 hover:border-slate-300 hover:shadow-elevada">
                 <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: c.cor }} />
 
                 <div className="flex items-start justify-between gap-3">
                   <Link href={`/ativos/categoria/${c.id}`} className="flex min-w-0 flex-1 items-start gap-3">
                     <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
                       style={{ backgroundColor: c.cor }}
                     >
                       <IconeCategoria nome={c.icone} className="h-5 w-5" />
@@ -74,6 +76,7 @@ export default async function AtivosPage() {
                     </div>
                   </Link>
 
+                  {gestor && (
                   <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-lg:opacity-100">
                     <DialogoCategoria categoria={c} />
                     <BotaoExcluir
@@ -83,6 +86,7 @@ export default async function AtivosPage() {
                       mensagem={`Tem certeza que deseja excluir a categoria "${c.nome}"? Esta ação não pode ser desfeita.`}
                     />
                   </div>
+                  )}
                 </div>
 
                 <Link
