@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { Contador } from "@/components/efeitos/contador";
 import { BarrasCategoria, type GastoCategoria } from "@/components/dashboard/barras-categoria";
-import { GraficoMensal, type PontoMensal } from "@/components/dashboard/grafico-mensal";
+import { type PontoMensal } from "@/components/dashboard/grafico-mensal";
+import { GraficoMensalLazy } from "@/components/dashboard/grafico-mensal-lazy";
 import { Badge, BotaoLink, Cabecalho, EstadoVazio, Secao } from "@/components/ui";
 import {
   SITUACAO_PLANO,
@@ -130,7 +131,7 @@ export default async function DashboardPage() {
       />
 
       {/* Indicadores */}
-      <div className="lista-escalonada grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="lista-escalonada grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
         <Indicador
           href="/ativos"
           icone={<Package className="h-5 w-5" />}
@@ -168,9 +169,16 @@ export default async function DashboardPage() {
       </div>
 
       {/* Gráficos */}
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:mt-6 xl:grid-cols-2">
         <Secao titulo="Gastos com manutenção — últimos 6 meses">
-          <GraficoMensal dados={meses} />
+          {meses.every((m) => m.valor === 0) ? (
+            // Sem gasto, nem baixa a biblioteca de gráficos.
+            <div className="flex h-64 items-center justify-center px-6 text-center text-sm text-slate-500">
+              Nenhum gasto registrado nos últimos 6 meses.
+            </div>
+          ) : (
+            <GraficoMensalLazy dados={meses} />
+          )}
         </Secao>
 
         <Secao
@@ -186,7 +194,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Alertas + recentes */}
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:mt-6 xl:grid-cols-2">
         <Secao
           titulo="Próximas manutenções e alertas"
           acoes={
@@ -326,17 +334,17 @@ function Indicador({
   }[tom];
 
   return (
-    <Link href={href} className="card cartao-vivo pressionavel group p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{rotulo}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{valor}</p>
-        </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${cores}`}>
+    <Link href={href} className="card cartao-vivo pressionavel group min-w-0 p-3.5 sm:p-5">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <p className="min-w-0 text-[11px] font-medium uppercase leading-tight tracking-wide text-slate-500 sm:text-xs">
+          {rotulo}
+        </p>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 sm:h-10 sm:w-10 sm:rounded-xl [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5 ${cores}`}>
           {icone}
         </span>
       </div>
-      <p className="mt-2 truncate text-xs text-slate-500">{detalhe}</p>
+      <p className="mt-1 truncate text-xl font-semibold tracking-tight text-slate-900 sm:mt-2 sm:text-2xl">{valor}</p>
+      <p className="mt-1 truncate text-[11px] text-slate-500 sm:mt-2 sm:text-xs">{detalhe}</p>
     </Link>
   );
 }

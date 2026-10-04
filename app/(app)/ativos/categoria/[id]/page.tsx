@@ -90,7 +90,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ id: 
         acoes={gestor ? <DialogoAtivo categorias={categorias ?? []} categoriaPadrao={cat.id} /> : undefined}
       />
 
-      <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-superficie p-4">
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ backgroundColor: cat.cor }}

@@ -29,6 +29,11 @@ function origensDeDesenvolvimento(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: origensDeDesenvolvimento(),
+  experimental: {
+    // Voltar para uma aba visitada há menos de 30 s é instantâneo (reaproveita
+    // a tela já carregada). Salvar algo chama revalidatePath, que limpa esse cache.
+    staleTimes: { dynamic: 30 },
+  },
 };
 
 export default nextConfig;

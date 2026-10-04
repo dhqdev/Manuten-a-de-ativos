@@ -24,17 +24,17 @@ export function CabecalhoEsqueleto({ comAcoes = true }: { comAcoes?: boolean }) 
 
 export function CartoesEsqueleto({ quantidade = 4 }: { quantidade?: number }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
       {Array.from({ length: quantidade }).map((_, i) => (
-        <div key={i} className="card p-5">
+        <div key={i} className="card p-3.5 sm:p-5">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <Bloco className="h-3 w-24" />
+              <Bloco className="h-3 w-full max-w-24" />
               <Bloco className="mt-3 h-7 w-20" />
             </div>
             <Bloco className="h-10 w-10 rounded-xl" />
           </div>
-          <Bloco className="mt-3 h-3 w-32" />
+          <Bloco className="mt-3 h-3 w-full max-w-32" />
         </div>
       ))}
     </div>

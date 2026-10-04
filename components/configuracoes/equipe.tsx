@@ -268,8 +268,8 @@ function NovoUsuario({ aoCriar }: { aoCriar: (c: Extract<Credenciais, { ok: true
                   className={cn(
                     "pressionavel rounded-lg border px-2 py-2 text-xs font-medium transition-all",
                     papel === p
-                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                      : "border-slate-300 bg-white text-slate-600 hover:border-slate-400",
+                      ? "border-slate-900 bg-slate-900 text-slate-50 shadow-sm"
+                      : "border-slate-300 bg-superficie text-slate-600 hover:border-slate-400",
                   )}
                 >
                   {PAPEIS[p].label}

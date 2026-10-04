@@ -6,7 +6,7 @@ export const metadata = { title: "Sem conexão" };
 export default function Offline() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-slate-50 px-6 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-slate-50">
         <Simbolo className="h-7 w-7" />
       </span>
 
@@ -20,7 +20,7 @@ export default function Offline() {
 
       <a
         href="/dashboard"
-        className="inline-flex h-11 items-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-medium text-white"
+        className="inline-flex h-11 items-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-medium text-slate-50"
       >
         <WifiOff className="h-4 w-4" />
         Tentar novamente

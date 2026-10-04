@@ -75,7 +75,7 @@ export default async function EstoquePage() {
         />
       ) : (
         <>
-          <div className="lista-escalonada mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="lista-escalonada mb-4 grid grid-cols-2 gap-2.5 sm:mb-6 sm:gap-3 xl:grid-cols-5">
             <Indicador rotulo="Em estoque" valor={numero(emEstoque.length)} Icone={PackageCheck} cor="text-marca-600 bg-marca-50" />
             <Indicador rotulo="Em uso" valor={numero(emUso)} Icone={CircleDot} cor="text-emerald-600 bg-emerald-50" />
             <Indicador rotulo="Na recapagem" valor={numero(recapagem)} Icone={Recycle} cor="text-amber-600 bg-amber-50" />
@@ -107,13 +107,13 @@ function Indicador({
   cor: string;
 }) {
   return (
-    <div className="card cartao-vivo flex items-center gap-3 p-4">
-      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", cor)}>
-        <Icone className="h-5 w-5" />
+    <div className="card cartao-vivo flex min-w-0 items-center gap-2.5 p-3 last:max-xl:odd:col-span-2 sm:gap-3 sm:p-4">
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl", cor)}>
+        <Icone className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-xs font-medium uppercase tracking-wide text-slate-500">{rotulo}</p>
-        <p className="mt-0.5 truncate text-lg font-semibold text-slate-900">{valor}</p>
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-slate-500 sm:text-xs">{rotulo}</p>
+        <p className="mt-0.5 truncate text-base font-semibold text-slate-900 sm:text-lg">{valor}</p>
       </div>
     </div>
   );

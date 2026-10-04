@@ -8,11 +8,11 @@ export default function CadastroPage() {
   return (
     <MolduraAuth
       titulo="Criar conta"
-      subtitulo="Sua empresa já começa com as categorias padrão criadas."
+      subtitulo="Comece a controlar a manutenção dos seus ativos em menos de um minuto."
       rodape={
         <>
           Já tem conta?{" "}
-          <Link href="/login" className="font-medium text-marca-600 hover:text-marca-700">
+          <Link href="/login" className="font-medium text-slate-900 underline-offset-4 hover:underline">
             Entrar
           </Link>
         </>

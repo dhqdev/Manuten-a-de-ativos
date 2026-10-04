@@ -365,7 +365,7 @@ export function DialogoManutencao({
             {/* Anexos */}
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
               <label className="flex cursor-pointer items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-superficie text-slate-500 ring-1 ring-slate-200">
                   <Paperclip className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -386,7 +386,7 @@ export function DialogoManutencao({
                     e.target.value = "";
                   }}
                 />
-                <span className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
+                <span className="shrink-0 rounded-lg border border-slate-300 bg-superficie px-3 py-1.5 text-sm font-medium text-slate-700">
                   Escolher
                 </span>
               </label>
@@ -396,7 +396,7 @@ export function DialogoManutencao({
                   {arquivos.map((a, i) => (
                     <li
                       key={`${a.name}-${i}`}
-                      className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
+                      className="flex items-center gap-2 rounded-lg bg-superficie px-3 py-2 text-sm ring-1 ring-slate-200"
                     >
                       <span className="min-w-0 flex-1 truncate text-slate-700">{a.name}</span>
                       <span className="shrink-0 text-xs text-slate-400">

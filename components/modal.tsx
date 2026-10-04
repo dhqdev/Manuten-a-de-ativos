@@ -48,7 +48,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
-        className="veu absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+        className="veu absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={aoFechar}
         aria-hidden
       />
@@ -60,7 +60,7 @@ export function Modal({
         aria-modal="true"
         aria-label={titulo}
         className={cn(
-          "folha relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-xl outline-none",
+          "folha relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-superficie shadow-xl outline-none",
           "sm:dialogo sm:max-h-[88dvh] sm:rounded-2xl",
           largura,
         )}

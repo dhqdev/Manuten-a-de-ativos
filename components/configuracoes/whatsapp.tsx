@@ -168,7 +168,7 @@ export function PainelWhatsapp({ conexao }: { conexao: ConexaoAtual }) {
         {/* --- Aguardando leitura do QR --- */}
         {conectando && (
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-            <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3">
+            <div className="shrink-0 rounded-xl border border-slate-200 bg-superficie p-3">
               {estado.qr ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

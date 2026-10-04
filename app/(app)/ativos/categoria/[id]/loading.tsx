@@ -6,7 +6,7 @@ export default function Carregando() {
       <Bloco className="mb-4 h-4 w-40" />
       <CabecalhoEsqueleto />
 
-      <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-superficie p-4">
         <Bloco className="h-11 w-11 rounded-xl" />
         <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (

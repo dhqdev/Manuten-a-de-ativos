@@ -126,7 +126,7 @@ export default async function AtivoPage({ params }: { params: Promise<{ id: stri
       />
 
       {/* Indicadores do ativo */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-6 sm:gap-3 xl:grid-cols-4">
         <Indicador
           icone={<ClipboardList className="h-4 w-4" />}
           rotulo="Manutenções"
@@ -282,14 +282,14 @@ function Indicador({
   alerta?: boolean;
 }) {
   return (
-    <div className="card p-4">
-      <div className="flex items-center gap-2 text-slate-500">
+    <div className="card min-w-0 p-3.5 sm:p-4">
+      <div className="flex items-center gap-1.5 text-slate-500 sm:gap-2">
         <span className={alerta ? "text-amber-600" : "text-slate-400"}>{icone}</span>
-        <span className="text-xs font-medium uppercase tracking-wide">{rotulo}</span>
+        <span className="truncate text-[11px] font-medium uppercase tracking-wide sm:text-xs">{rotulo}</span>
       </div>
-      <p className="mt-2 text-xl font-semibold text-slate-900">{valor}</p>
+      <p className="mt-1.5 truncate text-lg font-semibold text-slate-900 sm:mt-2 sm:text-xl">{valor}</p>
       {detalhe && (
-        <p className={`mt-0.5 text-xs ${alerta ? "text-amber-600" : "text-slate-500"}`}>{detalhe}</p>
+        <p className={`mt-0.5 truncate text-[11px] sm:text-xs ${alerta ? "text-amber-600" : "text-slate-500"}`}>{detalhe}</p>
       )}
     </div>
   );
