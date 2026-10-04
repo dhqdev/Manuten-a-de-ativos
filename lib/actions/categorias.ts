@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { SEM_PERMISSAO } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -60,8 +61,9 @@ export async function excluirCategoria(id: string): Promise<Resultado> {
       };
     }
 
-    const { error } = await supabase.from("categorias").delete().eq("id", id);
+    const { data: afetadas, error } = await supabase.from("categorias").delete().eq("id", id).select("id");
     if (error) return erroBanco(error);
+    if (!afetadas?.length) return { ok: false, erro: SEM_PERMISSAO };
 
     revalidatePath("/ativos");
     revalidatePath("/dashboard");

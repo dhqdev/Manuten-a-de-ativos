@@ -1,41 +1,18 @@
 import Link from "next/link";
-import { Building2, FolderOpen, ShieldCheck, UserPlus, Users } from "lucide-react";
-import { BotaoExcluir } from "@/components/confirmar";
+import { Building2, FolderOpen, ShieldCheck } from "lucide-react";
+import { PainelEquipe } from "@/components/configuracoes/equipe";
 import { FormularioSalvar } from "@/components/configuracoes/formulario-salvar";
 import { PainelWhatsapp, type ConexaoAtual } from "@/components/configuracoes/whatsapp";
 import { ZonaPerigo } from "@/components/configuracoes/zona-perigo";
-import { Badge, Cabecalho, Campo, Secao } from "@/components/ui";
+import { Cabecalho, Campo, Secao } from "@/components/ui";
 import { alterarSenha, salvarEmpresa, salvarPerfil, trocarEmpresa } from "@/lib/actions/configuracoes";
-import { adicionarMembro, removerMembro } from "@/lib/actions/equipe";
-import { dataBR, iniciais } from "@/lib/format";
+import { dataBR } from "@/lib/format";
+import { podeGerenciar } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { PapelMembro } from "@/lib/types";
 
 export const metadata = { title: "Configurações · Gestão de Manutenção" };
-
-const PAPEIS: Record<PapelMembro, { label: string; classe: string; descricao: string }> = {
-  proprietario: {
-    label: "Proprietário",
-    classe: "bg-marca-50 text-marca-700 ring-marca-600/20",
-    descricao: "Acesso total, inclusive à equipe",
-  },
-  gestor: {
-    label: "Gestor",
-    classe: "bg-violet-50 text-violet-700 ring-violet-600/20",
-    descricao: "Gerencia ativos, manutenções e equipe",
-  },
-  tecnico: {
-    label: "Técnico",
-    classe: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-    descricao: "Registra manutenções e consulta dados",
-  },
-  leitor: {
-    label: "Leitor",
-    classe: "bg-slate-100 text-slate-600 ring-slate-500/20",
-    descricao: "Somente consulta",
-  },
-};
 
 export default async function ConfiguracoesPage() {
   const { orgId, userId, email, profile, organizacao, papel, empresas } = await getContexto();
@@ -58,12 +35,12 @@ export default async function ConfiguracoesPage() {
     supabase.from("manutencoes").select("id", { count: "exact", head: true }).eq("org_id", orgId),
     supabase
       .from("whatsapp_conexoes")
-      .select("status, numero, nome_perfil, notificar, incluir_atrasadas, dias_antecedencia, ultimo_envio")
+      .select("*")
       .eq("org_id", orgId)
       .maybeSingle(),
   ]);
 
-  const podeGerenciar = papel === "proprietario" || papel === "gestor";
+  const gestor = podeGerenciar(papel);
 
   // Para a exclusão de conta: empresas onde o usuário é a única pessoa somem
   // por completo; nas demais ele apenas sai.
@@ -222,87 +199,35 @@ export default async function ConfiguracoesPage() {
 
       {/* WhatsApp */}
       <div className="mt-4">
-        <PainelWhatsapp conexao={(conexaoWhatsapp as ConexaoAtual) ?? null} />
+        {gestor ? (
+          <PainelWhatsapp conexao={(conexaoWhatsapp as ConexaoAtual) ?? null} />
+        ) : (
+          <Secao titulo="Notificações por WhatsApp">
+            <p className="px-4 py-5 text-sm text-slate-600 sm:px-5">
+              {conexaoWhatsapp?.status === "conectado"
+                ? "O resumo diário está ativo para esta empresa."
+                : "O WhatsApp ainda não foi conectado."}{" "}
+              Só o proprietário ou um gestor pode alterar esta configuração.
+            </p>
+          </Secao>
+        )}
       </div>
 
       {/* Equipe */}
       <div className="mt-4">
-        <Secao
-          titulo="Equipe"
-          acoes={
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Users className="h-3.5 w-3.5" />
-              {equipe.length} pessoa(s)
-            </span>
-          }
-        >
-          <ul className="divide-y divide-slate-100">
-            {equipe.map((m) => (
-              <li key={m.user_id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                  {iniciais(m.profiles?.nome ?? m.profiles?.email)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900">
-                    {m.profiles?.nome ?? m.profiles?.email ?? "Usuário"}
-                    {m.user_id === userId && (
-                      <span className="ml-1.5 text-xs font-normal text-slate-400">(você)</span>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-slate-500">
-                    {m.profiles?.email}
-                    {m.profiles?.cargo ? ` · ${m.profiles.cargo}` : ""}
-                  </p>
-                </div>
-                <Badge className={PAPEIS[m.papel].classe}>{PAPEIS[m.papel].label}</Badge>
-                {podeGerenciar && m.papel !== "proprietario" && m.user_id !== userId && (
-                  <BotaoExcluir
-                    compacto
-                    acao={removerMembro.bind(null, m.user_id)}
-                    titulo="Remover da equipe"
-                    mensagem={`${m.profiles?.nome ?? m.profiles?.email} perderá o acesso aos dados desta empresa. A conta da pessoa não é excluída.`}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-
-          {podeGerenciar && (
-            <div className="border-t border-slate-200 bg-slate-50">
-              <FormularioSalvar
-                acao={adicionarMembro}
-                rotulo="Adicionar à equipe"
-                mensagemSucesso="Pessoa adicionada."
-                limparAoSalvar
-              >
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <UserPlus className="h-4 w-4 text-slate-400" />
-                  Dar acesso a uma pessoa
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Campo
-                    label="E-mail"
-                    obrigatorio
-                    hint="A pessoa precisa ter criado a conta antes."
-                  >
-                    <input name="email" type="email" required placeholder="pessoa@empresa.com.br" className="campo" />
-                  </Campo>
-                  <Campo label="Papel">
-                    <select name="papel" defaultValue="tecnico" className="campo">
-                      {(Object.keys(PAPEIS) as PapelMembro[])
-                        .filter((p) => p !== "proprietario")
-                        .map((p) => (
-                          <option key={p} value={p}>
-                            {PAPEIS[p].label} — {PAPEIS[p].descricao}
-                          </option>
-                        ))}
-                    </select>
-                  </Campo>
-                </div>
-              </FormularioSalvar>
-            </div>
-          )}
-        </Secao>
+        <PainelEquipe
+          membros={equipe.map((m) => ({
+            user_id: m.user_id,
+            papel: m.papel,
+            created_at: m.created_at,
+            nome: m.profiles?.nome ?? null,
+            email: m.profiles?.email ?? null,
+            cargo: m.profiles?.cargo ?? null,
+          }))}
+          userId={userId}
+          podeGerenciar={gestor}
+          urlSistema={(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "")}
+        />
       </div>
 
       <div className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { SEM_PERMISSAO } from "@/lib/permissoes";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -16,7 +17,7 @@ export async function salvarEmpresa(fd: FormData): Promise<Resultado> {
     const { orgId } = await getContexto();
     const supabase = await createClient();
 
-    const { error } = await supabase
+    const { data: alterada, error } = await supabase
       .from("organizacoes")
       .update({
         nome: textoObrigatorio(fd, "nome", "o nome da empresa"),
@@ -24,9 +25,11 @@ export async function salvarEmpresa(fd: FormData): Promise<Resultado> {
         telefone: texto(fd, "telefone"),
         endereco: texto(fd, "endereco"),
       })
-      .eq("id", orgId);
+      .eq("id", orgId)
+      .select("id");
 
     if (error) return erroBanco(error);
+    if (!alterada?.length) return { ok: false, erro: SEM_PERMISSAO };
 
     revalidatePath("/", "layout");
     return { ok: true };

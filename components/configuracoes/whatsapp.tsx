@@ -20,6 +20,7 @@ export type ConexaoAtual = {
   notificar: boolean;
   incluir_atrasadas: boolean;
   dias_antecedencia: number;
+  horario_envio?: number | null;
   ultimo_envio: string | null;
 } | null;
 
@@ -260,7 +261,7 @@ export function PainelWhatsapp({ conexao }: { conexao: ConexaoAtual }) {
                 <span className="text-sm">
                   <span className="font-medium text-slate-800">Receber resumo diário</span>
                   <span className="mt-0.5 block text-slate-500">
-                    Enviado toda manhã. Se não houver nada pendente, nada é enviado.
+                    Enviado no horário escolhido abaixo. Se não houver nada pendente, nada é enviado.
                   </span>
                 </span>
               </label>
@@ -280,19 +281,34 @@ export function PainelWhatsapp({ conexao }: { conexao: ConexaoAtual }) {
                 </span>
               </label>
 
-              <Campo
-                label="Avisar com quantos dias de antecedência"
-                hint="Vale para as manutenções programadas por data."
-              >
-                <input
-                  name="dias_antecedencia"
-                  type="number"
-                  min={0}
-                  max={60}
-                  defaultValue={conexao?.dias_antecedencia ?? 3}
-                  className="campo sm:max-w-40"
-                />
-              </Campo>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Campo label="Horário do envio" hint="Horário de Brasília.">
+                  <select
+                    name="horario_envio"
+                    defaultValue={String(conexao?.horario_envio ?? 8)}
+                    className="campo"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo
+                  label="Avisar com quantos dias de antecedência"
+                  hint="Vale para as manutenções programadas por data."
+                >
+                  <input
+                    name="dias_antecedencia"
+                    type="number"
+                    min={0}
+                    max={60}
+                    defaultValue={conexao?.dias_antecedencia ?? 3}
+                    className="campo"
+                  />
+                </Campo>
+              </div>
 
               <div className="flex items-center justify-between gap-3 pt-1">
                 <p className="text-xs text-slate-500">

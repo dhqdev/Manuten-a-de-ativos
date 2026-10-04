@@ -133,8 +133,13 @@ export async function excluirAtivo(id: string): Promise<Resultado> {
 export async function atualizarHorimetro(id: string, valor: number): Promise<Resultado> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("ativos").update({ horimetro_atual: valor }).eq("id", id);
+    const { data: afetadas, error } = await supabase
+      .from("ativos")
+      .update({ horimetro_atual: valor })
+      .eq("id", id)
+      .select("id");
     if (error) return erroBanco(error);
+    if (!afetadas?.length) return { ok: false, erro: SEM_PERMISSAO };
 
     revalidatePath("/ativos", "layout");
     revalidatePath("/manutencoes");
