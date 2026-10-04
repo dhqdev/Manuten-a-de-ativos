@@ -1,4 +1,12 @@
-import type { SituacaoPlano, StatusAtivo, TipoManutencao, UnidadePeriodicidade } from "./types";
+import type {
+  CondicaoPneu,
+  SituacaoPlano,
+  StatusAtivo,
+  StatusPneu,
+  TipoManutencao,
+  TipoMovPneu,
+  UnidadePeriodicidade,
+} from "./types";
 
 export const moeda = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -26,7 +34,11 @@ export function dataHoraBR(iso: string | null | undefined) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
-export const hoje = () => new Date().toISOString().slice(0, 10);
+/**
+ * Data de hoje em Brasília (AAAA-MM-DD). `toISOString` usa UTC — depois das 21h
+ * já seria amanhã — e o servidor da Vercel roda em UTC; o fuso fixo resolve os dois.
+ */
+export const hoje = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
 export function primeiroDiaDoMes(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString("sv-SE");
@@ -86,3 +98,29 @@ export function iniciais(nome: string | null | undefined) {
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+export const STATUS_PNEU: Record<StatusPneu, { label: string; classe: string; cor: string }> = {
+  estoque: { label: "Em estoque", classe: "bg-marca-50 text-marca-700 ring-marca-600/20", cor: "#2563eb" },
+  em_uso: { label: "Em uso", classe: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", cor: "#059669" },
+  recapagem: { label: "Na recapagem", classe: "bg-amber-50 text-amber-700 ring-amber-600/20", cor: "#d97706" },
+  descartado: { label: "Descartado", classe: "bg-slate-100 text-slate-500 ring-slate-500/20", cor: "#64748b" },
+};
+
+export const CONDICAO_PNEU: Record<CondicaoPneu, string> = {
+  novo: "Novo",
+  recapado: "Recapado",
+  usado: "Usado",
+};
+
+export const TIPOS_MOV_PNEU: Record<TipoMovPneu, string> = {
+  entrada: "Entrada no estoque",
+  instalacao: "Montagem no veículo",
+  remocao: "Remoção do veículo",
+  recapagem: "Envio para recapagem",
+  retorno: "Retorno da recapagem",
+  inspecao: "Inspeção / medição de sulco",
+  descarte: "Descarte",
+};
+
+/** Abaixo disto o pneu merece atenção. O mínimo legal no Brasil é 1,6 mm. */
+export const SULCO_ALERTA_MM = 3;

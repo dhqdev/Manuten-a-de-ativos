@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { hoje } from "@/lib/format";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -94,7 +95,7 @@ export async function salvarManutencao(fd: FormData): Promise<Resultado> {
 
     const id = texto(fd, "id");
     const ativoId = textoObrigatorio(fd, "ativo_id", "o ativo");
-    const dataManutencao = data(fd, "data_manutencao") ?? new Date().toLocaleDateString("sv-SE");
+    const dataManutencao = data(fd, "data_manutencao") ?? hoje();
     const horimetro = numero(fd, "horimetro");
     const valor = numero(fd, "valor") ?? 0;
     const responsavel = texto(fd, "responsavel");

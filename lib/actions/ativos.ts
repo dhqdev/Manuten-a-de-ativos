@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { hoje } from "@/lib/format";
 import { getContexto } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -58,7 +59,7 @@ export async function salvarAtivo(fd: FormData): Promise<Resultado> {
       marca: texto(fd, "marca"),
       identificacao: texto(fd, "identificacao"),
       ano: inteiro(fd, "ano"),
-      data_cadastro: data(fd, "data_cadastro") ?? new Date().toLocaleDateString("sv-SE"),
+      data_cadastro: data(fd, "data_cadastro") ?? hoje(),
       horimetro_atual: numero(fd, "horimetro_atual") ?? 0,
       status: (texto(fd, "status") ?? "ativo") as StatusAtivo,
       observacoes: texto(fd, "observacoes"),

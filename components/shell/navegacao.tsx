@@ -7,6 +7,7 @@ import {
   Bell,
   CalendarDays,
   ChartColumn,
+  CircleDot,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -27,6 +28,7 @@ const MENU: Item[] = [
   { href: "/ativos", rotulo: "Ativos", Icone: Package },
   { href: "/manutencoes", rotulo: "Manutenções", Icone: ClipboardList },
   { href: "/calendario", rotulo: "Calendário", Icone: CalendarDays },
+  { href: "/estoque", rotulo: "Estoque", Icone: CircleDot },
   { href: "/relatorios", rotulo: "Relatórios", Icone: ChartColumn },
   { href: "/configuracoes", rotulo: "Configurações", Icone: Settings },
 ];
